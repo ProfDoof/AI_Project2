@@ -1,11 +1,12 @@
 //snowglobe.h has iostream and cmath
-#include "Item.h"
+// #include "Item.h"
 #include <fstream>
 #include <sstream>
 #include <vector>
 #include <algorithm>
 #include <chrono>
 #include <iostream>
+#include "Chromosome.h"
 using namespace std;
 
 
@@ -138,39 +139,44 @@ int getWeight(vector<Item> items, vector<bool> state) {
     return weight;
 }
 
-// prints out the contents of a chromosome
-void printChromo(vector<bool> state) {
-	for_each(state.begin(), state.end(), [](auto it) { cout << it << " "; }); cout << endl;
+
+void printPopulation(vector<Chromosome> pop) {
+	for (auto it = pop.begin(); it != pop.end(); it++) {
+		cout << *it;
+	}
 }
 
-void printPopulation(vector<vector<bool>> pop) {	
-	for_each(pop.begin(), pop.end(), [](auto it) { printChromo(it); }); cout << endl;
-}
+
+
+// GA FUNCTIONS //
+// ---------------------------------------- //
 
 // (P) size : the number of chromosomes to be generated
 // generates (size) chromosomes (random) and appends them to the population
-void generatePopulation(const int size, const vector<Item> items, const int maxWeight, vector<vector<bool>> &population) {
+void generatePopulation(const int size, const vector<Item> items, const int maxWeight, vector<Chromosome> &population) {
 
 	// i : nth chromosome being generated
 	for (int i = 0; i < size; i++) {
-		vector<bool> chromo(items.size(), false);
+		vector<bool> gene(items.size(), false);
 
-		// iterate through chromo, only flip random bit if the set's weight is less than the carry cap
-		for (auto it = chromo.begin(); it != chromo.end(); it++) {
+		// iterate through gene, only flip random bit if the set's weight is less than the carry cap
+		for (auto it = gene.begin(); it != gene.end(); it++) {
 			if (rand() % 2)
 				*it = true;
 
-			if (getWeight(items, chromo) > maxWeight) {
+			if (getWeight(items, gene) > maxWeight) {
 				*it = false;
 				break; // yes, I did the unspeakable mwahahahaaha
 			}
 		}
+		Chromosome chromo(items, gene);
     	population.push_back(chromo);
 	}
 }
 
 int main() {
-	int popSize = 10;
+	int genLimit = 10;
+	int popSize = 5;
 	int maxWeight = 0;
 	vector<Item> items;
 
@@ -179,23 +185,26 @@ int main() {
 	cout << "Enter a file: ";
 	cin >> filename;
 	readFile(filename, items, maxWeight);
-	outputKnapsack(items);
 
 	// INITIALIZE POPULATION //
-	vector<vector<bool>> population;
+	vector<Chromosome> population;
 	generatePopulation(popSize, items, maxWeight, population);
 	printPopulation(population);
 
-	// LOOP //
+	// LOOP // (optimal solution is unknown) (loop number of gen or time (3 min))
+	int i = 0;
+	while (i < genLimit) {
+		sort(population.begin(), population.end());
 
-	// BREED //
+		// FITTEST MOVE ON //
 
-	// MUTATION //
+		// CROSSOVER //
 
-	// FITNESS //
+		// MUTATION //
 
-	// ELITISM //
 
+
+	}
 	// END LOOP //
 
 
