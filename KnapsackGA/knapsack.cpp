@@ -5,73 +5,43 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
-
 using namespace std;
 
-void iterateArray(bool* array, int houseSize)
-{
-  for (int i = 0; i < houseSize; i++)
-  {
-    //cout << "iterateArray i = " << i << endl;
-    if (array[i])
-    {
-      array[i] = false;
-    }
-    else
-    {
-      array[i] = true;
-      return;
-    }
-  }
-}
 
-vector<snowglobe> exhaustive(vector<snowglobe> house, int maxWeight, int houseSize)
-{
-  //variables
-  vector<snowglobe> bestKnapsack;
-  int bestValue = 0;
+// THINGS WE NEED
+// Crossover method
+// Mutation Rate
+// Evaluation (FITNESS)
+//   Knapsack
+//    Highest value
+//    Remaining capacity
+//    ? Number of items
+//    ? Best Ratio
+//   TSP
+//    Distance
+//   Substitution Cipher
+//    Unigraph/Digraph/Trigraph/Vowel
+// Copy Rate
+// Population Rate
+// How to handle crowding (I AM A FAN OF CATASTROPHIC MUTATION)
 
-  bool* array = new bool[houseSize];
+// What we need to ask HOMER
+//  How to determine if we are crowding
+//    String or Boolean Array
+//  How to deal with weight limit OR how to generate initial sets
+//  Dealing with crossover for something like knapsack.
 
-  for (int i = 0; i < houseSize; i++)
-  {
-    array[i] = false;
-  }
+// Random function can be done using the mersenne twister combined with random
+// device and standard distribution
 
-  for (int i = 0; i < pow(2, houseSize); i++)
-  {
-    //cout << "i = " << i << endl;
-    //make a current knapsack for this run of the loop
-    vector<snowglobe> currentKnapsack;
-    int currentWeight = 0;
-    int currentValue = 0;
+// population : 100
+// elitism : keep x best (x = 20) (this will keep focus on depth (more generations))
+// crossover : randomized
+// fitnesss : value-based heuristic that also takes weight into account. WEIGHT LEFT
 
-    //put the things for this combination in the current knapsack
-    for (int j = 0; j < houseSize; j++)
-    {
-      //cout << "j = " << j << endl;
-      if (array[j])
-      {
-        currentKnapsack.push_back(house[j]);
-        currentWeight += house[j].weight;
-        currentValue += house[j].value;
-      }
-    }
+// how to deal with weight limit : initially generate good sets
+//                                 if over limit kill
 
-    //see if this is valid, if so is it the best so far?
-    if (currentWeight <= maxWeight && currentValue > bestValue)
-    {
-      bestKnapsack = currentKnapsack;
-      bestValue = currentValue;
-    }
-
-    iterateArray(array, houseSize);
-  }
-
-  //clean up
-  delete [] array;
-  return bestKnapsack;
-}
 
 void outputKnapsack(vector<snowglobe> knapsack)
 {
