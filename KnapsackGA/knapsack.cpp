@@ -1,10 +1,11 @@
 //snowglobe.h has iostream and cmath
-#include "snowglobe.h"
+#include "Item.h"
 #include <fstream>
 #include <sstream>
 #include <vector>
 #include <algorithm>
 #include <chrono>
+#include <iostream>
 using namespace std;
 
 
@@ -43,12 +44,58 @@ using namespace std;
 //                                 if over limit kill
 
 
-void outputKnapsack(vector<snowglobe> knapsack)
-{
+void readFile(const string filename, vector<Item> &items, int &maxWeight) {
+
+  string line;
+  string itemID;
+  int numItems;
+  int itemWeight;
+  int itemValue;
+
+  ifstream fin;
+  fin.open("..//Test_files/" + filename);
+
+  if (fin.is_open()) {
+ 
+    // first line in file constains : "num_of_items, max_weight"
+    // read in first line of file and assign values accordingly (ignore commas)
+    getline(fin, line);
+    replace(line.begin(), line.end(), ',', ' ');
+    stringstream ss(line);
+    ss >> numItems >> maxWeight;
+
+    // loop through the rest of the line in the file (populating items vector)
+    for (int i = 0; i < numItems; i++) {
+
+      // read in the line (ignore commas)
+      getline(fin, line);
+      replace(line.begin(), line.end(), ',', ' ');
+      stringstream ss(line);
+
+      // line in file : "id, weight, value"
+      // populate an item with line data
+      ss >> itemID >> itemWeight >> itemValue;
+      Item current;
+      current.id = itemID;
+      current.weight = itemWeight;
+      current.value = itemValue;
+      current.ratio = (double)(itemValue) / itemWeight;
+
+      //put the snowglobe into the house
+      items.push_back(current);
+    }
+  }
+  else {
+    cout << "Could not open file." << endl;
+  }
+  fin.close();
+}
+
+void outputKnapsack(vector<Item> knapsack) {
   int totalValue = 0;
   int totalWeight = 0;
 
-  cout << "Take snowglobes ";
+  cout << "Take items ";
 
   for (int i = 0; i < knapsack.size(); i++)
   {
@@ -68,80 +115,68 @@ void outputKnapsack(vector<snowglobe> knapsack)
   cout << " for a total weight of " << totalWeight << " and a value of " << totalValue << "." << endl;
 }
 
-int main()
-{
-  //create the vector to hold all the snowglobes (and the other variables)
-  vector<snowglobe> house;
-  vector<snowglobe> knapsack;
-  string filename;
-  string line;
-  ifstream fin;
 
-  int numItems = 0;
+
+
+
+// return : value of a state
+int getValue(vector<Item> items, vector<bool> state) {
+    int value = 0;
+    for (auto it = state.begin(); it != state.end(); it++)
+        if (*it)
+            value += items.at(it - state.begin()).value;
+    return value;
+}
+
+// return : the weight of a state
+int getWeight(vector<Item> items, vector<bool> state) {
+    int weight = 0;
+    for (auto it = state.begin(); it != state.end(); it++)
+        if (*it)
+            weight += items.at(it - state.begin()).weight;
+    return weight;
+}
+
+// prints out the contents of a chromosome
+void print(vector<bool> state) {
+	for_each(state.begin(), state.end(), [](auto it) { cout << it << " "; }); cout << endl;
+}
+
+// this should fill a class/struct called a population with vectors of chromosomes 
+// (P) size : the number of chromosomes to be generated
+void generatePopulation(int size, vector<Item> items, int maxWeight) {
+
+	// i : nth chromosome being generated
+	for (int i = 0; i < size; i++) {
+		vector<bool> chromo(items.size(), false);
+
+		// iterate through chromo, only flip random bit if the set's weight is less than the carry cap
+		for (auto it = chromo.begin(); it != chromo.end(); it++) {
+			if (rand() % 2)
+				*it = true;
+
+			if (getWeight(items, chromo) > maxWeight) {
+				*it = false;
+				break; // yes, I did the unspeakable mwahahahaaha
+			}
+		}
+		print(chromo);
+		// populate population
+	}
+}
+
+int main() {
+  
   int maxWeight = 0;
+  vector<Item> items;
 
-  string snowglobeID;
-  int snowglobeWeight = 0;
-  int snowglobeValue = 0;
-
-  //get the input file
-  cout << "Enter filename: ";
+  string filename;
+  cout << "Enter a file: ";
   cin >> filename;
 
-  //open the file and read in the snowglobes
-  auto t1 = chrono::high_resolution_clock::now();
-  fin.open(filename.c_str());
+  readFile(filename, items, maxWeight);
+  outputKnapsack(items);
+  generatePopulation(5, items, maxWeight);
 
-  if (fin.is_open())
-  {
-    //the first line has num items and max weight, so do that separately
-    getline(fin, line);
 
-    //replace the commas with spaces
-    replace(line.begin(), line.end(), ',', ' ');
-
-    //now we get the two numbers
-    stringstream ss(line);
-    ss >> numItems >> maxWeight;
-
-    //loop through the rest of the file to get the snowglobes
-    for (int i = 0; i < numItems; i++)
-    {
-      //read in the line and replace the commas
-      getline(fin, line);
-      replace(line.begin(), line.end(), ',', ' ');
-      stringstream ssSnowglobe(line);
-
-      //get the individual components and put them into a struct
-      ssSnowglobe >> snowglobeID >> snowglobeWeight >> snowglobeValue;
-      snowglobe current;
-      current.id = snowglobeID;
-      current.weight = snowglobeWeight;
-      current.value = snowglobeValue;
-      current.ratio = (double)(snowglobeValue) / snowglobeWeight;
-
-      //put the snowglobe into the house
-      house.push_back(current);
-    }
-  }
-  else
-  {
-    cout << "Could not open file." << endl;
-  }
-
-  fin.close();
-  auto t2 = chrono::high_resolution_clock::now();
-  chrono::duration<double, std::milli> fp_ms = t2 - t1;
-
-  cout << endl << "File Input time: " << fp_ms.count() << endl;
-
-  //Exhaustive Search implemented here.
-  t1 = chrono::high_resolution_clock::now();
-  knapsack = exhaustive(house, maxWeight, numItems);
-  t2 = chrono::high_resolution_clock::now();
-  fp_ms = t2 - t1;
-  cout << "By Exhaustive Search: ";
-  outputKnapsack(knapsack);
-  cout << endl;
-  cout << "Exhaustive Search time: " << fp_ms.count() << endl;
 }
