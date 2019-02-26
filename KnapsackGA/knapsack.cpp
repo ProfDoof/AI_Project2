@@ -87,6 +87,7 @@ void readFile(const string filename, vector<Item> &items, int &maxWeight) {
   }
   else {
     cout << "Could not open file." << endl;
+    exit(0);
   }
   fin.close();
 }
@@ -138,13 +139,17 @@ int getWeight(vector<Item> items, vector<bool> state) {
 }
 
 // prints out the contents of a chromosome
-void print(vector<bool> state) {
+void printChromo(vector<bool> state) {
 	for_each(state.begin(), state.end(), [](auto it) { cout << it << " "; }); cout << endl;
 }
 
-// this should fill a class/struct called a population with vectors of chromosomes 
+void printPopulation(vector<vector<bool>> pop) {	
+	for_each(pop.begin(), pop.end(), [](auto it) { printChromo(it); }); cout << endl;
+}
+
 // (P) size : the number of chromosomes to be generated
-void generatePopulation(int size, vector<Item> items, int maxWeight) {
+// generates (size) chromosomes (random) and appends them to the population
+void generatePopulation(const int size, const vector<Item> items, const int maxWeight, vector<vector<bool>> &population) {
 
 	// i : nth chromosome being generated
 	for (int i = 0; i < size; i++) {
@@ -160,23 +165,39 @@ void generatePopulation(int size, vector<Item> items, int maxWeight) {
 				break; // yes, I did the unspeakable mwahahahaaha
 			}
 		}
-		print(chromo);
-		// populate population
+    	population.push_back(chromo);
 	}
 }
 
 int main() {
-  
-  int maxWeight = 0;
-  vector<Item> items;
+	int popSize = 10;
+	int maxWeight = 0;
+	vector<Item> items;
 
-  string filename;
-  cout << "Enter a file: ";
-  cin >> filename;
+	// READ FILE //
+	string filename;
+	cout << "Enter a file: ";
+	cin >> filename;
+	readFile(filename, items, maxWeight);
+	outputKnapsack(items);
 
-  readFile(filename, items, maxWeight);
-  outputKnapsack(items);
-  generatePopulation(5, items, maxWeight);
+	// INITIALIZE POPULATION //
+	vector<vector<bool>> population;
+	generatePopulation(popSize, items, maxWeight, population);
+	printPopulation(population);
+
+	// LOOP //
+
+	// BREED //
+
+	// MUTATION //
+
+	// FITNESS //
+
+	// ELITISM //
+
+	// END LOOP //
+
 
 
 }
