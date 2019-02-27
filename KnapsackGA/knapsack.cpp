@@ -87,17 +87,6 @@ bool valid(vector<Item> items, vector<bool> state, int maxWeight) {
     return weight <= maxWeight;
 }
 
-// generates (size) chromosomes (randomly) and appends them to the population
-void generatePopulation(const int size, const vector<Item> items, const int maxWeight, vector<Chromosome> &population) {
-
-	// i : nth chromosome being generated
-	for (int i = 0; i < size; i++) {
-		vector<bool> gene = randGene(items, maxWeight);
-		Chromosome chromo(items, gene);
-    	population.push_back(chromo);
-	}
-}
-
 // return : randomly generated gene (within carrying capacity)
 vector<bool> randGene(vector<Item> items, int maxWeight) {
 	vector<bool> gene(items.size(), false);
@@ -113,6 +102,17 @@ vector<bool> randGene(vector<Item> items, int maxWeight) {
 		}
 	}
 	return gene;
+}
+
+// generates (size) chromosomes (randomly) and appends them to the population
+void generatePopulation(const int size, const vector<Item> items, const int maxWeight, vector<Chromosome> &population) {
+
+	// i : nth chromosome being generated
+	for (int i = 0; i < size; i++) {
+			vector<bool> gene = randGene(items, maxWeight);
+			Chromosome chromo(items, gene);
+    	population.push_back(chromo);
+	}
 }
 
 int main() {
@@ -200,4 +200,5 @@ int main() {
 		copy(newGeneration.begin(), newGeneration.end(), back_inserter(population));
 		gen++;
 	}
+	cout << "Final Answer: " << bestValue << endl;
 }
