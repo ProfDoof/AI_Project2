@@ -1,5 +1,3 @@
-//snowglobe.h has iostream and cmath
-// #include "Item.h"
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -8,41 +6,6 @@
 #include <iostream>
 #include "Chromosome.h"
 using namespace std;
-
-
-// THINGS WE NEED
-// Crossover method
-// Mutation Rate
-// Evaluation (FITNESS)
-//   Knapsack
-//    Highest value
-//    Remaining capacity
-//    ? Number of items
-//    ? Best Ratio
-//   TSP
-//    Distance
-//   Substitution Cipher
-//    Unigraph/Digraph/Trigraph/Vowel
-// Copy Rate
-// Population Rate
-// How to handle crowding (I AM A FAN OF CATASTROPHIC MUTATION)
-
-// What we need to ask HOMER
-//  How to determine if we are crowding
-//    String or Boolean Array
-//  How to deal with weight limit OR how to generate initial sets
-//  Dealing with crossover for something like knapsack.
-
-// Random function can be done using the mersenne twister combined with random
-// device and standard distribution
-
-// population : 100
-// elitism : keep x best (x = 20) (this will keep focus on depth (more generations))
-// crossover : randomized
-// fitnesss : value-based heuristic that also takes weight into account. WEIGHT LEFT
-
-// how to deal with weight limit : initially generate good sets
-//                                 if over limit kill
 
 
 void readFile(const string filename, vector<Item> &items, int &maxWeight) {
@@ -93,43 +56,6 @@ void readFile(const string filename, vector<Item> &items, int &maxWeight) {
   fin.close();
 }
 
-void outputKnapsack(vector<Item> knapsack) {
-  int totalValue = 0;
-  int totalWeight = 0;
-
-  cout << "Take items ";
-
-  for (int i = 0; i < knapsack.size(); i++)
-  {
-    if (totalValue == 0)
-    {
-      cout << knapsack[i].id;
-    }
-    else
-    {
-      cout << ", " << knapsack[i].id;
-    }
-
-    totalWeight += knapsack[i].weight;
-    totalValue += knapsack[i].value;
-  }
-
-  cout << " for a total weight of " << totalWeight << " and a value of " << totalValue << "." << endl;
-}
-
-
-
-
-
-// return : value of a state
-int getValue(vector<Item> items, vector<bool> state) {
-    int value = 0;
-    for (auto it = state.begin(); it != state.end(); it++)
-        if (*it)
-            value += items.at(it - state.begin()).value;
-    return value;
-}
-
 // return : the weight of a state
 int getWeight(vector<Item> items, vector<bool> state) {
     int weight = 0;
@@ -139,44 +65,61 @@ int getWeight(vector<Item> items, vector<bool> state) {
     return weight;
 }
 
-
 void printPopulation(vector<Chromosome> pop) {
+	/*for (auto it = pop.begin(); it != pop.end(); it++) {
+		cout << *it << endl;
+	}*/
+	double fit = 0;
 	for (auto it = pop.begin(); it != pop.end(); it++) {
-		cout << *it;
+		fit += it->fitness;
 	}
+
+	cout << fit / pop.size() << endl;
+
 }
 
+// return : if a state is valid (e.g. if it is within the carrying capactiy)
+bool valid(vector<Item> items, vector<bool> state, int maxWeight) {
+	int weight = 0;
+    for (auto it = state.begin(); it != state.end(); it++)
+        if (*it)
+            weight += items.at(it - state.begin()).weight;
+    return weight <= maxWeight;
+}
 
-
-// GA FUNCTIONS //
-// ---------------------------------------- //
-
-// (P) size : the number of chromosomes to be generated
-// generates (size) chromosomes (random) and appends them to the population
+// generates (size) chromosomes (randomly) and appends them to the population
 void generatePopulation(const int size, const vector<Item> items, const int maxWeight, vector<Chromosome> &population) {
 
 	// i : nth chromosome being generated
 	for (int i = 0; i < size; i++) {
-		vector<bool> gene(items.size(), false);
-
-		// iterate through gene, only flip random bit if the set's weight is less than the carry cap
-		for (auto it = gene.begin(); it != gene.end(); it++) {
-			if (rand() % 2)
-				*it = true;
-
-			if (getWeight(items, gene) > maxWeight) {
-				*it = false;
-				break; // yes, I did the unspeakable mwahahahaaha
-			}
-		}
+		vector<bool> gene = randGene(items, maxWeight);
 		Chromosome chromo(items, gene);
     	population.push_back(chromo);
 	}
 }
 
+// return : randomly generated gene (within carrying capacity)
+vector<bool> randGene(vector<Item> items, int maxWeight) {
+	vector<bool> gene(items.size(), false);
+
+	// iterate through gene, only flip random bit if the set's weight is less than the carry cap
+	for (auto it = gene.begin(); it != gene.end(); it++) {
+		if (rand() % 2) 
+			*it = true;
+
+		if (getWeight(items, gene) >= maxWeight) {
+			*it = false;
+			break; // yes, I did the unspeakable mwahahahaaha
+		}
+	}
+	return gene;
+}
+
 int main() {
-	int genLimit = 10;
-	int popSize = 5;
+    srand(time(NULL));
+
+	int genLimit = 20000;
+	int popSize = 100;
 	int maxWeight = 0;
 	vector<Item> items;
 
@@ -189,24 +132,72 @@ int main() {
 	// INITIALIZE POPULATION //
 	vector<Chromosome> population;
 	generatePopulation(popSize, items, maxWeight, population);
-	printPopulation(population);
 
-	// LOOP // (optimal solution is unknown) (loop number of gen or time (3 min))
-	int i = 0;
-	while (i < genLimit) {
-		sort(population.begin(), population.end());
+	// BEGIN GENERATIONS //
+    int gen = 0;
+    int maxFit = 0;
+    int minFit = 0;
+	int bestValue = 0;
+    while (gen < genLimit) {
+        vector<Chromosome> intermediatePopulation;
+		vector<Chromosome> newGeneration;
 
-		// FITTEST MOVE ON //
+        // maxfit holds best solution if no invalid chromosomes are allowed
+        sort(population.begin(), population.end());
+        minFit = population.begin()->fitness;
+        maxFit = population.back().fitness;
 
-		// CROSSOVER //
+		// ERROR: if fitness is not based on value alone then the back of population may not be the best solution
+		if (population.back().value > bestValue) {
+			cout << "Gen: " << gen << "\tNew Best: " << population.back().weight << " " << population.back().value << endl;
+			bestValue = population.back().value;
+		}
 
-		// MUTATION //
+		// POPULATE INTERMEDIATE POPULATION //
+		// if the state valid and cleared by percentage then push it into inter pop
+		for (int i = 0; intermediatePopulation.size() < popSize; i++, i %= popSize) {
+			if (population.at(i).weight <= maxWeight)
+				if (rand() / (double(RAND_MAX) + 1.0) <= (((1.0 * (population.at(i).fitness - minFit))  / ((maxFit - minFit) +.1))  * (.95 - .1) + .1))
+					intermediatePopulation.push_back(population.at(i));
+		}
+		
+		for (auto it = intermediatePopulation.begin(); it != intermediatePopulation.end(); it++) {
 
+			// DIRECT COPY //
+			// directly pushes state straight to new gen 25% of the time
+			if ((rand() / (float(RAND_MAX) + 1.0) <= 0.25))
+				newGeneration.push_back(*it);
 
+			// SINGLE POINT CROSSOVER //
+			// pushes crossover if it is valid, otherwise push a randomly genereated state
+			else {
+				vector<bool> crossed;
+				int crossPoint = rand() % items.size();
 
+				Chromosome chromoA = *it;
+				Chromosome chromoB = intermediatePopulation.at(rand() % popSize);
+				
+				crossed.insert(crossed.begin(), chromoA.gene.begin(), chromoA.gene.begin() + crossPoint);
+				crossed.insert(crossed.begin() + crossPoint, chromoB.gene.begin() + crossPoint, chromoB.gene.end());
+
+				// if the crossed is valid push to new gen
+				// if the crossed is not valid push random chromo
+				vector<bool> gene = valid(items, crossed, maxWeight) ? crossed : randGene(items, maxWeight);
+
+				Chromosome chromo(items, gene);
+				newGeneration.push_back(chromo);
+			}
+		}
+
+		// MUTATAION // ERROR MUTATION CAN GENERATE SOLUTION OVER WEIGHT LIMIT
+		for (auto it = newGeneration.begin(); it != newGeneration.end(); it++) {
+			if ((rand() / (double(RAND_MAX) + 1.0) <= 0.005))
+				it->mutate(rand() % items.size());
+		}
+
+		// make what was old new
+		population.clear();
+		copy(newGeneration.begin(), newGeneration.end(), back_inserter(population));
+		gen++;
 	}
-	// END LOOP //
-
-
-
 }
