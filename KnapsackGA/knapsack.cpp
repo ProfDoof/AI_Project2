@@ -16,7 +16,7 @@ void readFile(const string filename, vector<Item> &items, int &maxWeight) {
   int itemValue;
 
   ifstream fin;
-  fin.open("..//Test_files/" + filename);
+  fin.open("../Test_Files/" + filename);
 
   if (fin.is_open()) {
 
