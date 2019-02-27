@@ -29,7 +29,6 @@ using namespace std;
 //  How to determine if we are crowding
 //    String or Boolean Array
 //  How to deal with weight limit OR how to generate initial sets
-//  Dealing with crossover for something like knapsack.
 
 // Random function can be done using the mersenne twister combined with random
 // device and standard distribution
