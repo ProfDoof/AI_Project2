@@ -31,3 +31,8 @@
 
 // how to deal with weight limit : initially generate good sets
 //                                 if over limit kill
+
+// We may need to create a file that is simply a GA Methods file that way we can declutter our main file.
+// Also if we can we should get away from rand. That particular random number generators period is much too
+// small and may lead to repeating numbers. Ideally we should be using the random library. They have
+// many random number generators that are far better and much closer to being actually random.
