@@ -3,9 +3,9 @@
 struct Item
 {
   std::string id;
-  int weight;
-  int value;
-  double ratio;
+  int weight = 0;
+  int value = 0;
+  double ratio = 0;
 };
 
 bool sortWeight(Item a, Item b)

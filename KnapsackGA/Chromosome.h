@@ -38,6 +38,7 @@ Chromosome::Chromosome(std::vector<Item> items, std::vector<bool> chromo) {
 std::ostream& operator<<(std::ostream& os, const Chromosome& chromo) {
     for (auto it = chromo.gene.begin(); it != chromo.gene.end(); it++)
         os << *it << " ";
+    os << chromo.fitness;
     return os;
 }
 
