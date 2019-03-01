@@ -9,7 +9,8 @@ struct Chromosome {
 
     void mutate(int index);
 
-    Chromosome(std::vector<Item> items, std::vector<bool> chromo);
+    Chromosome(std::vector<Item> items, std::vector<bool> chromo, int maxWeight);
+    Chromosome(std::vector<Item> items, std::vector<bool> chromo, int bestValue, int maxWeight);
     friend std::ostream& operator<<(std::ostream& os, const Chromosome& chromo);
     friend bool operator< (const Chromosome& lhs, const Chromosome& rhs);
 };
@@ -19,20 +20,50 @@ void Chromosome::mutate(int index) {
     gene.at(index) = !gene.at(index);
 }
 
-Chromosome::Chromosome(std::vector<Item> items, std::vector<bool> chromo) {
+Chromosome::Chromosome(std::vector<Item> items, std::vector<bool> chromo, int maxWeight) {
     int kWeight = 0;
-    
+
     gene = chromo;
-    for (auto it = chromo.begin(); it != chromo.end(); it++) {
-        if (*it) {
-            weight += items.at(it - chromo.begin()).weight;
-            value += items.at(it - chromo.begin()).value;
+    for (int i = 0; i < gene.size(); i++) {
+        if (gene[i]) {
+            weight += items[i].weight;
+            value += items[i].value;
         }
-        kWeight += items.at(it - chromo.begin()).weight;
+        kWeight += items[i].weight;
     }
 
     // FITNESS FUNCTION DEFINED HERE //
-    fitness = value;
+    if (weight > maxWeight) {
+      fitness = .05;
+    }
+    else {
+      fitness = .5;
+    }
+}
+
+Chromosome::Chromosome(std::vector<Item> items, std::vector<bool> chromo, int bestValue, int maxWeight) {
+    // int kWeight = 0
+
+    gene = chromo;
+    for (int i = 0; i < gene.size(); i++) {
+        if (gene[i]) {
+            weight += items[i].weight;
+            value += items[i].value;
+        }
+        // kWeight += items[i].weight;
+    }
+
+    // Fitness Function can probably be improved. Let's come back to this.
+    // FITNESS FUNCTION DEFINED HERE //
+    if (weight > maxWeight) {
+      fitness = .05;
+    }
+    else {
+      fitness = (double)(value) / (double)(bestValue);
+      if (fitness < .05) {
+        fitness = .055;
+      }
+    }
 }
 
 std::ostream& operator<<(std::ostream& os, const Chromosome& chromo) {
@@ -43,5 +74,5 @@ std::ostream& operator<<(std::ostream& os, const Chromosome& chromo) {
 }
 
 bool operator< (const Chromosome& lhs, const Chromosome& rhs) {
-    return (lhs.fitness < rhs.fitness);
+    return (lhs.fitness == rhs.fitness) ? (lhs.value < rhs.value) : (lhs.fitness < rhs.fitness);
 }

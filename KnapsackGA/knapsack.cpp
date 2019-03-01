@@ -95,17 +95,16 @@ bool valid(vector<Item> items, vector<bool> state, int maxWeight) {
 // return : randomly generated gene (within carrying capacity)
 vector<bool> randGene(vector<Item> items, int maxWeight) {
 	vector<bool> gene(items.size(), false);
+  int currentWeight = 0;
 
-  // Change condition, also get rid of break in FOR LOOP.
 	// iterate through gene, only flip random bit if the set's weight is less than the carry cap
-	for (auto it = gene.begin(); it != gene.end(); it++) {
-		if (dist(engine) < (1 / items.size()))
-			*it = true;
+	for (int i = 0; i < gene.size() && currentWeight <= maxWeight; i++) {
 
-		if (getWeight(items, gene) >= maxWeight) {
-			*it = false;
-			break; // yes, I did the unspeakable mwahahahaaha
-		}
+    currentWeight += items[i].weight;
+    if (dist(engine) < (2.0 / gene.size()) && currentWeight <= maxWeight ) {
+			gene[i] = true;
+    }
+
 	}
 	return gene;
 }
@@ -116,7 +115,7 @@ void generatePopulation(const int size, const vector<Item> items, const int maxW
 	// i : nth chromosome being generated
 	for (int i = 0; i < size; i++) {
 			vector<bool> gene = randGene(items, maxWeight);
-			Chromosome chromo(items, gene);
+			Chromosome chromo(items, gene, maxWeight);
     	population.push_back(chromo);
 	}
 }
@@ -126,9 +125,14 @@ int main() {
   // Use time
   srand(time(NULL));
 
-	int genLimit = 20000;
-	int popSize = 100;
+  // Declare our population size, and the number of minutes we want the
+  // GA to run. Then we multiply the number of minutes by 60000 that way
+  // we only change a single number.
+	// int genLimit = 20000;
+  int popSize = 100;
 	int maxWeight = 0;
+  float minutes = 3;
+  minutes *= 60000;
 	vector<Item> items;
 
 	// READ FILE //
@@ -140,6 +144,8 @@ int main() {
 	// INITIALIZE POPULATION //
 	vector<Chromosome> population;
 	generatePopulation(popSize, items, maxWeight, population);
+  // Need the initial fitness calculation.
+
 
 	// BEGIN GENERATIONS //
   int gen = 1;
@@ -147,89 +153,155 @@ int main() {
   // maxFit : best fitness in current population
   // minFit : worst fitness in current population
   // bestValue : best solution value
+  // bestChromo: The best chromosome we have found.
   int maxFit = 0;
   int minFit = 0;
 	int bestValue = 0;
-  Chromosome bestChromo(items, vector<bool>(items.size(), 0));
+  Chromosome bestChromo(items, vector<bool>(items.size(), 0), maxWeight);
 
-  while (gen < genLimit) {
+  // Start the timer so that we only run for as many minutes as defined in the
+  // minutes variable.
+  auto startTime = chrono::high_resolution_clock::now();
+  auto currentTime = startTime;
+  chrono::duration<double, std::milli> compare = currentTime - startTime;
+
+  while (compare.count() < minutes) {
     vector<Chromosome> intermediatePopulation;
 		vector<Chromosome> newGeneration;
 
-    // maxfit holds best solution if no invalid chromosomes are allowed
-    // sort population based on FITNESS. The sort is based off of the Chromosome struct.
+    // maxfit holds best solution even if invalid chromosomes are allowed
+    // The best chromo is also within the correct weight because the fitness function
+    // automatically drops the
+    // sort population based on FITNESS and if FITNESS is equal it is based off of
+    // value. The sort is based off of the Chromosome struct.
     sort(population.begin(), population.end());
     minFit = population.begin()->fitness;
     maxFit = population.back().fitness;
 
+
 		// ERROR: if fitness is not based on value alone then the back of population may not be the best solution
     // HERE FIND BEST VALUE ?? //
-    for (auto i = population.begin(); i != population.end(); i++) {
-      if (i->value > bestValue && i->weight <= maxWeight) {
-        bestChromo.gene = i->gene;
-        bestChromo.value = i->value;
-        bestChromo.weight = i->weight;
-        bestValue = i->value;
-        cout << "Gen: " << gen << "\tNew Best: " << i->weight << " " <<  i->value << endl;
+    // for (auto i = population.begin(); i != population.end(); i++) {
+    //   if (i->value > bestValue && i->weight <= maxWeight) {
+    //     bestChromo.gene = i->gene;
+    //     bestChromo.value = i->value;
+    //     bestChromo.weight = i->weight;
+    //     bestValue = i->value;
+    //     cout << "Gen: " << gen << "\tNew Best: " << i->weight << " " <<  i->value << endl;
+    //
+    //   }
+    // }
 
-      }
-    }
-		/*if (population.back().value > bestValue) {
+		if (population.back().value > bestChromo.value) {
 			cout << "Gen: " << gen << "\tNew Best: " << population.back().weight << " " << population.back().value << endl;
-			bestValue = population.back().value;
-		}*/
+      bestChromo.gene = population.back().gene;
+      bestChromo.value = population.back().value;
+      bestChromo.weight = population.back().weight;
+		}
     //cout << intermediatePopulation.size();
 
 		// POPULATE INTERMEDIATE POPULATION //
 		// if the state valid and cleared by percentage then push it into inter pop
 		for (int i = 0; intermediatePopulation.size() < popSize; i++, i %= popSize) {
-			if (population.at(i).weight <= maxWeight)
-      // NORMALIZE FITNESS //
-				if (rand() / (double(RAND_MAX) + 1.0) <= (((1.0 * (population.at(i).fitness - minFit))  / ((maxFit - minFit) +.1))  * (.95 - .1) + .1))
-					intermediatePopulation.push_back(population.at(i));
+      if (dist(engine) <= population[i].fitness) {
+        Chromosome temp(items, population[i].gene, bestChromo.value, maxWeight);
+        intermediatePopulation.push_back(temp);
+      }
 		}
 
-		for (auto it = intermediatePopulation.begin(); it != intermediatePopulation.end(); it++) {
+		while (!intermediatePopulation.empty()) {
+      // cout << "1" << endl;
 			// DIRECT COPY //
 			// directly pushes state straight to new gen 25% of the time
-			if (dist(engine) <= 0.25)
-				newGeneration.push_back(*it);
+			if (dist(engine) <= 0.25) {
+        // Mutate
+        // cout << "1.1.1" << endl;
+        for (int i = 0; i < intermediatePopulation[0].gene.size(); i++)
+        {
+          if (dist(engine) <= .005) {
+            intermediatePopulation[0].gene[i] = !intermediatePopulation[0].gene[i];
+          }
+        }
+        // cout << "1.1.2" << endl;
+        // Add to new population
+				newGeneration.push_back(intermediatePopulation[0]);
+        // Delete from intermediate population
+        intermediatePopulation.erase(intermediatePopulation.begin());
+        // cout << "1.1.3" << endl;
+      }
 
 			// SINGLE POINT CROSSOVER //
-			// pushes crossover if it is valid, otherwise push a randomly genereated state
+			// pushes both crossover's and then deletes both chromosomes from the intermediate population.
 			else {
-				vector<bool> crossed;
+				vector<bool> crossed1;
+        vector<bool> crossed2;
 				int crossPoint = dist(engine)*items.size();
+        int bPoint = dist(engine)*intermediatePopulation.size();
 
-				Chromosome chromoA = *it;
-				Chromosome chromoB = intermediatePopulation.at((int)(dist(engine)*popSize));
+        // cout << "1.2.1" << endl;
+        // cout << !intermediatePopulation.empty() << " " << bPoint << " " << intermediatePopulation.size() << endl;
+        Chromosome chromoA = intermediatePopulation[0];
+        // cout << chromoA.value << endl;
+        // cout << "1.2.2" << endl;
+        // cout << !intermediatePopulation.empty() << " " << bPoint << " " << intermediatePopulation.size() << endl;
+        Chromosome chromoB = intermediatePopulation.at(bPoint);
+        // cout << "1.2.3" << endl;
 
-				crossed.insert(crossed.begin(), chromoA.gene.begin(), chromoA.gene.begin() + crossPoint);
-				crossed.insert(crossed.begin() + crossPoint, chromoB.gene.begin() + crossPoint, chromoB.gene.end());
+        for (int i = 0; i < crossPoint; i++ )
+        {
+          crossed1.push_back(chromoA.gene[i]);
+          crossed2.push_back(chromoB.gene[i]);
+        }
+
+        for (int i = crossPoint; i < items.size(); i++)
+        {
+          crossed1.push_back(chromoB.gene[i]);
+          crossed2.push_back(chromoA.gene[i]);
+        }
+
+        intermediatePopulation.erase(intermediatePopulation.begin()+bPoint);
+        if (!intermediatePopulation.empty())
+        {
+          intermediatePopulation.erase(intermediatePopulation.begin());
+        }
 
 				// if the crossed is valid push to new gen
 				// if the crossed is not valid push random chromo
         // randomly passs through invalid chromo occasionally .5% chance
-        vector<bool> gene = valid(items, crossed, maxWeight) ? crossed : randGene(items, maxWeight);
+        // vector<bool> gene = valid(items, crossed, maxWeight) ? crossed : randGene(items, maxWeight);
 
-				Chromosome chromo(items, gene);
-				newGeneration.push_back(chromo);
-			}
-		}
+        // cout << "1.2.4" << endl;
+        // Mutate function
+        for (int i = 0; i < crossed1.size(); i++)
+        {
+          if (dist(engine) <= .005) {
+            crossed1[i] = !crossed1[i];
+          }
 
-		// MUTATAION // ERROR MUTATION CAN GENERATE SOLUTION OVER WEIGHT LIMIT
-		for (auto it = newGeneration.begin(); it != newGeneration.end(); it++) {
-			if (dist(engine) <= 0.005)
-				it->mutate((int)(dist(engine)*items.size()));
+          if (dist(engine) <= .005) {
+            crossed2[i] = !crossed2[i];
+          }
+        }
+
+        // cout << "1.2.5" << endl;
+				Chromosome chromo1(items, crossed1, maxWeight);
+        Chromosome chromo2(items, crossed2, maxWeight);
+				newGeneration.push_back(chromo1);
+        newGeneration.push_back(chromo2);
+        // cout << "1.2.6" << endl;
+      }
 		}
 
 		// make what was old new
     // figure out why it doesn't like population = newGeneration
     //printPopulation(newGeneration);
     //cout << newGeneration.size() << endl;
+    // cout << 2 << endl;
 		population.clear();
 		copy(newGeneration.begin(), newGeneration.end(), back_inserter(population));
 		gen++;
+    currentTime = chrono::high_resolution_clock::now();
+    compare = currentTime - startTime;
 	}
-	cout << "Final Answer: " << bestValue << endl;
+	cout << "Final Answer: " << bestChromo.value << endl;
 }
