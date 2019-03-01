@@ -8,6 +8,7 @@ struct Chromosome {
     double fitness = 0;
 
     void mutate(int index);
+    void fitnessSet(int bestValue, int maxWeight);
 
     Chromosome(std::vector<Item> items, std::vector<bool> chromo, int maxWeight);
     Chromosome(std::vector<Item> items, std::vector<bool> chromo, int bestValue, int maxWeight);
@@ -33,12 +34,7 @@ Chromosome::Chromosome(std::vector<Item> items, std::vector<bool> chromo, int ma
     }
 
     // FITNESS FUNCTION DEFINED HERE //
-    if (weight > maxWeight) {
-      fitness = .05;
-    }
-    else {
-      fitness = .5;
-    }
+    fitnessSet(0, maxWeight);
 }
 
 Chromosome::Chromosome(std::vector<Item> items, std::vector<bool> chromo, int bestValue, int maxWeight) {
@@ -55,15 +51,24 @@ Chromosome::Chromosome(std::vector<Item> items, std::vector<bool> chromo, int be
 
     // Fitness Function can probably be improved. Let's come back to this.
     // FITNESS FUNCTION DEFINED HERE //
-    if (weight > maxWeight) {
-      fitness = .05;
+    fitnessSet(bestValue, maxWeight);
+}
+
+void Chromosome::fitnessSet(int bestValue, int maxWeight)
+{
+  if (weight > maxWeight) {
+    fitness = .05;
+  }
+  else if (bestValue = 0)
+  {
+    fitness = .5;
+  }
+  else {
+    fitness = (double)(value) / (double)(bestValue);
+    if (fitness < .05) {
+      fitness = .055;
     }
-    else {
-      fitness = (double)(value) / (double)(bestValue);
-      if (fitness < .05) {
-        fitness = .055;
-      }
-    }
+  }
 }
 
 std::ostream& operator<<(std::ostream& os, const Chromosome& chromo) {

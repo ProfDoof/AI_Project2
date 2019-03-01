@@ -121,10 +121,6 @@ void generatePopulation(const int size, const vector<Item> items, const int maxW
 }
 
 int main() {
-  // Fix random function
-  // Use time
-  srand(time(NULL));
-
   // Declare our population size, and the number of minutes we want the
   // GA to run. Then we multiply the number of minutes by 60000 that way
   // we only change a single number.
@@ -198,13 +194,18 @@ int main() {
       bestChromo.value = population.back().value;
       bestChromo.weight = population.back().weight;
 		}
-    //cout << intermediatePopulation.size();
+
+    // Normalize the fitness
+    for (auto it = population.begin(); it != population.end(); it++)
+    {
+      it->fitnessSet(bestChromo.value, maxWeight);
+    }
 
 		// POPULATE INTERMEDIATE POPULATION //
 		// if the state valid and cleared by percentage then push it into inter pop
 		for (int i = 0; intermediatePopulation.size() < popSize; i++, i %= popSize) {
       if (dist(engine) <= population[i].fitness) {
-        Chromosome temp(items, population[i].gene, bestChromo.value, maxWeight);
+        Chromosome temp(items, population[i].gene, maxWeight);
         intermediatePopulation.push_back(temp);
       }
 		}
@@ -213,39 +214,34 @@ int main() {
       // cout << "1" << endl;
 			// DIRECT COPY //
 			// directly pushes state straight to new gen 25% of the time
-			if (dist(engine) <= 0.25) {
+      // if it is the last one any crossover generated would be equal to itself
+      // plus that would take us over the population limit so just push that
+      // sucker in.
+			if (dist(engine) <= 0.25 || intermediatePopulation.size() == 1) {
         // Mutate
-        // cout << "1.1.1" << endl;
         for (int i = 0; i < intermediatePopulation[0].gene.size(); i++)
         {
           if (dist(engine) <= .005) {
             intermediatePopulation[0].gene[i] = !intermediatePopulation[0].gene[i];
           }
         }
-        // cout << "1.1.2" << endl;
         // Add to new population
 				newGeneration.push_back(intermediatePopulation[0]);
         // Delete from intermediate population
         intermediatePopulation.erase(intermediatePopulation.begin());
-        // cout << "1.1.3" << endl;
       }
 
 			// SINGLE POINT CROSSOVER //
-			// pushes both crossover's and then deletes both chromosomes from the intermediate population.
+			// pushes both crossover's and then deletes both chromosomes from
+      // the intermediate population.
 			else {
 				vector<bool> crossed1;
         vector<bool> crossed2;
 				int crossPoint = dist(engine)*items.size();
         int bPoint = dist(engine)*intermediatePopulation.size();
 
-        // cout << "1.2.1" << endl;
-        // cout << !intermediatePopulation.empty() << " " << bPoint << " " << intermediatePopulation.size() << endl;
         Chromosome chromoA = intermediatePopulation[0];
-        // cout << chromoA.value << endl;
-        // cout << "1.2.2" << endl;
-        // cout << !intermediatePopulation.empty() << " " << bPoint << " " << intermediatePopulation.size() << endl;
         Chromosome chromoB = intermediatePopulation.at(bPoint);
-        // cout << "1.2.3" << endl;
 
         for (int i = 0; i < crossPoint; i++ )
         {
@@ -260,17 +256,13 @@ int main() {
         }
 
         intermediatePopulation.erase(intermediatePopulation.begin()+bPoint);
-        if (!intermediatePopulation.empty())
-        {
-          intermediatePopulation.erase(intermediatePopulation.begin());
-        }
+        intermediatePopulation.erase(intermediatePopulation.begin());
 
 				// if the crossed is valid push to new gen
 				// if the crossed is not valid push random chromo
         // randomly passs through invalid chromo occasionally .5% chance
         // vector<bool> gene = valid(items, crossed, maxWeight) ? crossed : randGene(items, maxWeight);
 
-        // cout << "1.2.4" << endl;
         // Mutate function
         for (int i = 0; i < crossed1.size(); i++)
         {
@@ -283,25 +275,21 @@ int main() {
           }
         }
 
-        // cout << "1.2.5" << endl;
 				Chromosome chromo1(items, crossed1, maxWeight);
         Chromosome chromo2(items, crossed2, maxWeight);
 				newGeneration.push_back(chromo1);
         newGeneration.push_back(chromo2);
-        // cout << "1.2.6" << endl;
       }
 		}
 
 		// make what was old new
     // figure out why it doesn't like population = newGeneration
-    //printPopulation(newGeneration);
-    //cout << newGeneration.size() << endl;
-    // cout << 2 << endl;
 		population.clear();
 		copy(newGeneration.begin(), newGeneration.end(), back_inserter(population));
 		gen++;
     currentTime = chrono::high_resolution_clock::now();
     compare = currentTime - startTime;
 	}
+
 	cout << "Final Answer: " << bestChromo.value << endl;
 }
