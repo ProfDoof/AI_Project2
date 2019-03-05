@@ -59,7 +59,7 @@ void Chromosome::fitnessSet(int bestValue, int maxWeight)
   if (weight > maxWeight) {
     fitness = .05;
   }
-  else if (bestValue = 0)
+  else if (bestValue == 0)
   {
     fitness = .5;
   }
@@ -72,9 +72,9 @@ void Chromosome::fitnessSet(int bestValue, int maxWeight)
 }
 
 std::ostream& operator<<(std::ostream& os, const Chromosome& chromo) {
+    os << std::endl << chromo.weight << " " << chromo.value  << std::endl;
     for (auto it = chromo.gene.begin(); it != chromo.gene.end(); it++)
         os << *it << " ";
-    os << chromo.fitness;
     return os;
 }
 

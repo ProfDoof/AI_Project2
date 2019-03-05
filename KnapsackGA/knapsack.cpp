@@ -10,7 +10,7 @@ using namespace std;
 
 // Generate random seed and other random tools
 random_device rd{};
-mt19937 engine{rd()};
+mt19937 engine{static_cast<long unsigned int>(time(0))};
 uniform_real_distribution<double> dist{0.0, 1.0};
 
 void readFile(const string filename, vector<Item> &items, int &maxWeight) {
@@ -189,10 +189,11 @@ int main() {
     // }
 
 		if (population.back().value > bestChromo.value) {
-			cout << "Gen: " << gen << "\tNew Best: " << population.back().weight << " " << population.back().value << endl;
+			cout << "Gen: " << gen << "\tNew Best: " << population.back().weight << " " << population.back().value <<  endl;
       bestChromo.gene = population.back().gene;
       bestChromo.value = population.back().value;
       bestChromo.weight = population.back().weight;
+      bestChromo.fitness = population.back().fitness;
 		}
 
     // Normalize the fitness
@@ -277,6 +278,10 @@ int main() {
 
 				Chromosome chromo1(items, crossed1, maxWeight);
         Chromosome chromo2(items, crossed2, maxWeight);
+  
+        //cout << endl << chromo1 << endl;
+        //cout << chromo2 << endl << endl;
+
 				newGeneration.push_back(chromo1);
         newGeneration.push_back(chromo2);
       }
@@ -291,5 +296,11 @@ int main() {
     compare = currentTime - startTime;
 	}
 
-	cout << "Final Answer: " << bestChromo.value << endl;
+	cout << endl << "Final Answer: " <<  endl << "Gen: " << gen << bestChromo << endl;
+  for (auto it = bestChromo.gene.begin(); it != bestChromo.gene.end(); it++) {
+    if (*it) {
+      cout << items[it - bestChromo.gene.begin()].id << " ";
+    }
+  }
+  cout << endl;
 }
