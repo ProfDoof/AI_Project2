@@ -1,6 +1,7 @@
 #include "Item.h"
 #include <vector>
 
+
 struct Chromosome {
     std::vector<bool> gene;
     int value = 0;

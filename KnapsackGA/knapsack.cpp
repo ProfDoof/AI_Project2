@@ -276,6 +276,14 @@ int main() {
           }
         }
 
+        if (getWeight(items, crossed1) > maxWeight) {
+          crossed1 = randGene(items, maxWeight);
+        }
+
+        if (getWeight(items, crossed2) > maxWeight) {
+          crossed2 = randGene(items, maxWeight);
+        }
+
 				Chromosome chromo1(items, crossed1, maxWeight);
         Chromosome chromo2(items, crossed2, maxWeight);
   
