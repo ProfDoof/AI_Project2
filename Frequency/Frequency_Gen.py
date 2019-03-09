@@ -1,6 +1,6 @@
 import string
 
-files = ["walden.txt", "pride_and_prejudice.txt"]
+files = ["walden.txt", "pride_and_prejudice.txt", "david_copperfield.txt", "shakespeare.txt"]
 
 def write_file(filename, _dict):
     file = open(filename, "w")
@@ -8,6 +8,14 @@ def write_file(filename, _dict):
         file.write(k + " " + str(v) + "\n")
 
     file.close()
+
+# i don't know whagt to do here
+def frequency(_dict):
+    size = len(_dict)
+    for key in _dict.keys():
+        _dict[key] /= size
+    
+    return _dict
 
 def main():
 
@@ -25,8 +33,8 @@ def main():
         file.close()
 
         # generate sub-strings of sizes (1,2,3)
-        sub_strings = list(file_contents[i:k+1] for i in range(len(file_contents)) for k in range(i,len(file_contents)) if k - i < 3)
-        
+        sub_strings = list(file_contents[i:k+1] for i in range(len(file_contents)) for k in range(i, i + 3) if k < len(file_contents) and k - i < 3)
+        print(filename, "complete")
         # iterate through sub-strings and add frequencies to dictionaries
         for sub_str in sub_strings:
             
@@ -47,11 +55,9 @@ def main():
                     freq_3[sub_str] = 1
                 else:
                     freq_3[sub_str] += 1
-        
-        write_file("Frequency_1.txt", freq_1)
-        write_file("Frequency_2.txt", freq_2)
-        write_file("Frequency_3.txt", freq_3)
 
-        break
+    write_file("Frequency_1.txt", freq_1)
+    write_file("Frequency_2.txt", freq_2)
+    write_file("Frequency_3.txt", freq_3)
         
 main()
