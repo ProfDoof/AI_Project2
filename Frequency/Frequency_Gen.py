@@ -1,63 +1,69 @@
 import string
 
-files = ["walden.txt", "pride_and_prejudice.txt", "david_copperfield.txt", "shakespeare.txt"]
-
-def write_file(filename, _dict):
-    file = open(filename, "w")
-    for k, v in _dict.items():
-        file.write(k + " " + str(v) + "\n")
-
-    file.close()
-
-# i don't know whagt to do here
-def frequency(_dict):
-    size = len(_dict)
-    for key in _dict.keys():
-        _dict[key] /= size
-    
-    return _dict
+files = ["walden.txt","david_copperfield.txt","pride_and_prejudice.txt","shakespeare.txt"]
+# files = ["abc.txt"]
 
 def main():
 
     freq_1 = {}
     freq_2 = {}
     freq_3 = {}
+    tot1 = 0
+    tot2 = 0
+    tot3 = 0
 
     for filename in files:
 
         # open file
-        file = open(filename, "r", encoding = "utf-8")
+        file = open(filename, "r")
 
         # strip all nonalphabetic characters from string
         file_contents = "".join([char.upper() for char in "".join((file.read()).split()) if char.isalpha()])
         file.close()
+        # print(file_contents)
 
         # generate sub-strings of sizes (1,2,3)
-        sub_strings = list(file_contents[i:k+1] for i in range(len(file_contents)) for k in range(i, i + 3) if k < len(file_contents) and k - i < 3)
-        print(filename, "complete")
         # iterate through sub-strings and add frequencies to dictionaries
-        for sub_str in sub_strings:
-            
-            if len(sub_str) == 1:
-                if sub_str not in freq_1:
-                    freq_1[sub_str] = 1
-                else:
-                    freq_1[sub_str] += 1 
-      
-            elif len(sub_str) == 2:
-                    if sub_str not in freq_2:
-                        freq_2[sub_str] = 1
-                    else:
-                        freq_2[sub_str] += 1
+        for i in range( len(file_contents) ):
+            tot1 += 1
+            sub_str = file_contents[i]
+            if sub_str not in freq_1:
+                freq_1[sub_str] = 1.0
+            else:
+                freq_1[sub_str] += 1.0
 
-            elif len(sub_str) == 3:
+            if i > 0:
+                tot2 += 1
+                sub_str = file_contents[i-1:i+1]
+                if sub_str not in freq_2:
+                    freq_2[sub_str] = 1.0
+                else:
+                    freq_2[sub_str] += 1.0
+
+            if i > 1:
+                tot3 += 1
+                sub_str = file_contents[i-2:i+1]
                 if sub_str not in freq_3:
-                    freq_3[sub_str] = 1
+                    freq_3[sub_str] = 1.0
                 else:
-                    freq_3[sub_str] += 1
+                    freq_3[sub_str] += 1.0
 
-    write_file("Frequency_1.txt", freq_1)
-    write_file("Frequency_2.txt", freq_2)
-    write_file("Frequency_3.txt", freq_3)
-        
+        print(filename, "complete")
+
+
+    file = open("Frequency.txt", "w")
+    for k, v in freq_1.items():
+        v_output = "%.9f" % (v/tot1)
+        file.write(k + " " + v_output + "\n")
+
+    for k, v in freq_2.items():
+        v_output = "%.9f" % (v/tot2)
+        file.write(k + " " + v_output + "\n")
+
+    for k, v in freq_3.items():
+        v_output = "%.9f" % (v/tot3)
+        file.write(k + " " + v_output + "\n")
+
+    file.close()
+
 main()
