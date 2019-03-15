@@ -52,6 +52,7 @@ class GACipher
         void loadCodedMessage(std::string filename);
         void loadFreq();
         void randPopulation();
+        void decode(std::string cipher);
 
         // run methods
         double fitnessSet(std::string cipher);
@@ -224,7 +225,7 @@ double GACipher::fitnessSet(std::string cipher)
     }
     errorTri = sqrt(errorTri/messFreqTri.size());
 
-    return (errorUni * .77)+(errorDi * .15)+(errorTri * .08);
+    return (errorUni * .88)+(errorDi * .1)+(errorTri * .02);
 }
 
 bool GACipher::mutate(std::pair<std::string, double>& ttm)
@@ -251,6 +252,22 @@ void GACipher::printFitness()
     {
         std::cout << population[i].second << std::endl;
     }
+}
+
+void GACipher::decode(std::string cipher)
+{
+    std::string tempMessage = codedMessage;
+    std::map<std::string, double> messFreqUni;
+    std::map<std::string, double> messFreqDi;
+    std::map<std::string, double> messFreqTri;
+
+    // std::cout << "Cipher: " << cipher << std::endl;
+    std::cout << "Coded Message:         " << tempMessage << std::endl;
+    for (int i = 0; i < tempMessage.size(); i++)
+    {
+        tempMessage[i] = alphabet[cipher.find(tempMessage[i])];
+    }
+    std::cout << "Coded Message Decoded: " << tempMessage << std::endl;
 }
 
 // post-run methods
@@ -297,6 +314,7 @@ void GACipher::run(std::string filename)
         {
             bestCipher = population[0];
             std::cout << "New Best: " << bestCipher.first << std::endl << "Fitnes: " << bestCipher.second << std::endl;
+            decode(bestCipher.first);
         }
 
         // Build our intermediate population.
