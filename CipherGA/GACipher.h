@@ -1,3 +1,4 @@
+#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <cmath>
@@ -48,7 +49,7 @@ class GACipher
 
         // Methods
         // pre-run methods
-        void loadCodedMessage(std::string fileName);
+        void loadCodedMessage(std::string filename);
         void loadFreq();
         void randPopulation();
 
@@ -56,6 +57,7 @@ class GACipher
         double fitnessSet(std::string cipher);
         void catastrophicMutation(std::string lastString);
         bool mutate(std::pair<std::string, double>& ttm);
+        void printFitness();
 
         // post-run methods
 
@@ -71,8 +73,7 @@ GACipher::GACipher()
 
 GACipher::GACipher(double cR, double mR, double ttr, int pS) : copyRate(cR), mutationRate(mR), timeToRun(ttr), popSize(pS)
 {
-    loadFreq();
-    randPopulation();
+
 }
 
 // Destructor
@@ -103,9 +104,13 @@ void GACipher::loadFreq()
     fin.close();
 }
 
-void GACipher::loadCodedMessage(std::string fileName)
+void GACipher::loadCodedMessage(std::string filename)
 {
-
+    std::ifstream fin;
+    fin.open(filename);
+    getline(fin, codedMessage);
+    //std::cout << codedMessage << std::endl;
+    fin.close();
 }
 
 void GACipher::randPopulation()
@@ -123,6 +128,7 @@ void GACipher::randPopulation()
             temp.first += genGeneList[randIndex];
             genGeneList.erase(genGeneList.begin()+randIndex);
         }
+        // std::cout << temp.first << std::endl;
         temp.second = fitnessSet(temp.first);
         population.push_back(temp);
     }
@@ -136,10 +142,13 @@ double GACipher::fitnessSet(std::string cipher)
     std::map<std::string, double> messFreqDi;
     std::map<std::string, double> messFreqTri;
 
+    // std::cout << "Cipher: " << cipher << std::endl;
+    // std::cout << "TempMessageB: " << tempMessage << std::endl;
     for (int i = 0; i < tempMessage.size(); i++)
     {
         tempMessage[i] = alphabet[cipher.find(tempMessage[i])];
     }
+    // std::cout << "TempMessageA: " << tempMessage << std::endl;
 
     // Add all unigraphs, digraphs, and trigraphs to
     // their own frequency chart.
@@ -236,18 +245,31 @@ bool GACipher::mutate(std::pair<std::string, double>& ttm)
     return ttr;
 }
 
+void GACipher::printFitness()
+{
+    for (int i = 0; i < population.size(); i++)
+    {
+        std::cout << population[i].second << std::endl;
+    }
+}
+
 // post-run methods
 
 // the method "run"
 void GACipher::run(std::string filename)
 {
+    std::cout << "Start Run" << std::endl;
     loadCodedMessage(filename);
+    loadFreq();
+    randPopulation();
+    std::cout << "Message Loaded" << std::endl;
+    // printFitness();
 
     // Declare the timer variables
     auto startTime = std::chrono::high_resolution_clock::now();
     auto currentTime = startTime;
     std::chrono::duration<double, std::milli> compare = currentTime - startTime;
-    std::pair<std::string, double> bestCipher("",0);
+    std::pair<std::string, double> bestCipher("",100);
 
     // Run this as long as is defined in the GA
     // constructor
@@ -266,13 +288,15 @@ void GACipher::run(std::string filename)
                 return a.second < b.second;
             });
 
+
         // Check and see if we have found a better
         // fitting cipher than our current best
         // in this case lower is better (it's like
         // golf)
-        if (population[0].second > bestCipher.second)
+        if (population[0].second < bestCipher.second)
         {
             bestCipher = population[0];
+            std::cout << "New Best: " << bestCipher.first << std::endl << "Fitnes: " << bestCipher.second << std::endl;
         }
 
         // Build our intermediate population.
@@ -297,7 +321,9 @@ void GACipher::run(std::string filename)
                 // Run the mutate function on the
                 // currently being viewed population
                 // pair
+                // std::cout << intermediatePopulation[0].first << " " << intermediatePopulation[0].second << std::endl;
                 bool flag = mutate(intermediatePopulation[0]);
+                // std::cout << intermediatePopulation[0].first << " " << intermediatePopulation[0].second << std::endl;
 
                 // If the pair was mutated we need to
                 // recalculate the fitness.
@@ -332,6 +358,8 @@ void GACipher::run(std::string filename)
                     // set.
                     cross1 = chromoA.first.substr(0,crossOverIndex);
                     cross2 = chromoB.first.substr(0,crossOverIndex);
+                    // std::cout << cross1 << std::endl;
+                    // std::cout << cross2 << std::endl;
 
                     // Now iterate through the partner
                     // string for both pushing each
@@ -340,7 +368,7 @@ void GACipher::run(std::string filename)
                     for (int i = 0; i < chromoB.first.size(); i++)
                     {
                         bool flag = true;
-                        for (int j = 0; flag && cross1.size(); j++)
+                        for (int j = 0; flag && j < cross1.size(); j++)
                         {
                             if (cross1[j] == chromoB.first[i])
                             {
@@ -357,7 +385,7 @@ void GACipher::run(std::string filename)
                     for (int i = 0; i < chromoA.first.size(); i++)
                     {
                         bool flag = true;
-                        for (int j = 0; flag && cross2.size(); j++)
+                        for (int j = 0; flag && j < cross2.size(); j++)
                         {
                             if (cross2[j] == chromoA.first[i])
                             {
@@ -370,6 +398,8 @@ void GACipher::run(std::string filename)
                             cross2 += chromoA.first[i];
                         }
                     }
+                    // std::cout << cross1 << std::endl;
+                    // std::cout << cross2 << std::endl;
 
                     intermediatePopulation.erase(intermediatePopulation.begin()+partnerIndex);
                     intermediatePopulation.erase(intermediatePopulation.begin());
