@@ -22,16 +22,17 @@ def main():
     # have key only contian chars in text
     key = {}
     for k,v in key_0.items():
-        if k in string:
             key[k] = v
 
-    other_key = {}
     values = list(chr(char) for char in key.values())
+    '''
+    other_key = {}
     values.sort()
     for k, v in key.items():
         for char in values:
             if char == chr(v):
                 other_key[char] = k
+    '''
 
 
 
@@ -53,6 +54,7 @@ def main():
         file.write(format(str(string.count(char)), "2s") + " ")
     file.write('\n')
     file.write('\n')
+    '''
     for k in values:
         file.write(format(k, "2s") + ' ')
     file.write('\n')
@@ -61,6 +63,7 @@ def main():
         file.write(format(other_key[values[i]], "2s") + ' ')
         i += 1
     file.close()
+    '''
     
     # test file
     file = open(filename, "w")
