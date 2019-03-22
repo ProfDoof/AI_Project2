@@ -110,6 +110,10 @@ void GACipher::loadCodedMessage(std::string filename)
     std::ifstream fin;
     fin.open(filename);
     getline(fin, codedMessage);
+    for (int i = 0; i < codedMessage.size(); i++ )
+    {
+        codedMessage[i] = toupper(codedMessage[i]);
+    }
     //std::cout << codedMessage << std::endl;
     fin.close();
 }
@@ -225,7 +229,7 @@ double GACipher::fitnessSet(std::string cipher)
     }
     errorTri = sqrt(errorTri/messFreqTri.size());
 
-    return (errorUni * .88)+(errorDi * .1)+(errorTri * .02);
+    return errorUni + (errorDi * 3)+(errorTri * 9);
 }
 
 bool GACipher::mutate(std::pair<std::string, double>& ttm)
