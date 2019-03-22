@@ -1,0 +1,9 @@
+Output: SSSSSSSSSSZZZZZZZZPPPPPPXXXXHH
+Input:  EEEEEEEEEETTTTTTTTOOOOOOAAAAII
+Key:
+A  E  I  O  T   
+X  S  H  P  Z   
+
+
+H  P  S  X  Z  
+I  O  E  A  T  
