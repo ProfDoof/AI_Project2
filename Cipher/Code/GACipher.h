@@ -30,6 +30,8 @@ class GACipher
         std::map<std::string, double> diFreqMap;
         std::map<std::string, double> triFreqMap;
 
+        vector<pair<string,double>> encodedFreq;
+
 
         std::vector<std::pair<std::string,double>> uniFreq;
         std::vector<std::pair<std::string,double>> diFreq;
@@ -38,7 +40,7 @@ class GACipher
 
         // Coded Message and Population
         std::string codedMessage;
-        std::string codedMessageChars;
+        std::string cipherKey = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         std::vector<std::pair<std::string,double>> population;
 
         // Random Engine
@@ -136,7 +138,7 @@ void GACipher::loadFreq()
     if (fin.is_open())
     {
         int i = 0;
-        while (getline(fin, line) && i < 30)
+        while (getline(fin, line) && i < 20)
         {
             std::pair<std::string, double> temp;
             std::stringstream ss(line);
@@ -177,15 +179,25 @@ void GACipher::loadCodedMessage(std::string filename)
     std::ifstream fin;
     fin.open(filename);
     getline(fin, codedMessage);
-    fin.close();
 
-    // codedMessageChars is a string which represents the set of all chars in the codedMessage
+
     for (int i = 0; i < codedMessage.size(); i++) {
-        if (codedMessageChars.find(codedMessage[i]) == std::string::npos)
-            codedMessageChars += codedMessage[i];
-    }
 
-    sort(codedMessageChars.begin(), codedMessageChars.end());
+        if (find(encodedFreq.begin(), encodedFreq.end(), codedMessage[i]) == encodedFreq.end()) {
+            count(codedMessage.begin(), codedMessage.end(), codedMessage[i]);
+            pair<string, double> elem;
+            elem.first = codedMessage[i];
+            elem.second = count(codedMessage.begin(), codedMessage.end(), codedMessage[i]) / codedMessage.size();
+            encodedFreq.push_back(elem);
+        }
+    }
+    for (auto it = encodedFreq.begin(); it != encodedFreq.end(); it++) {
+        cout << it->first << " " << it->second << endl;
+    } 
+    cout << endl;
+
+
+    fin.close();
 }
 
 void GACipher::randPopulation()
@@ -195,7 +207,7 @@ void GACipher::randPopulation()
         std::pair<std::string, double> chromosome;
 
         // generate cipher key
-        for (int i = 0; i < codedMessageChars.size(); i++) {
+        for (int i = 0; i < 26; i++) {
             int index = rand() % chars.size();
             chromosome.first += chars[index];
             chars.erase(index, 1);
@@ -208,11 +220,34 @@ void GACipher::randPopulation()
 
 
 
+// consider double (like ee, oo, nn, rr, ll)
+// conider how often a vowel shows
+
+bool prune(string key, string translated) {
+
+    vector<string> improbable_doubles = { "WW", "AA", "II", "BB", "UU", "ZZ", "KK", "XX", "VV", "JJ", "QQ" };
+    
+    for (int i = 1; i < translated.size(); i++) {
+        if (translated[i-1] == translated[i] && find(improbable_doubles.begin(), improbable_doubles.end(), translated.substr(i-1,2)) != improbable_doubles.end()) {
+            return false;
+        }
+    }
+
+
+    if (translated.back() == 'V' || translated.back() == 'J') {
+        return false;
+    }
+
+
+    return true;
+}
+
 // run methods
 double GACipher::fitnessSet(std::string cipherValue)
 {
-    std::string cipherKey = codedMessageChars;
     std::string translated = translate(cipherValue);
+
+    
     
     double sum = 0;
     double uniFit = 0;
@@ -225,6 +260,7 @@ double GACipher::fitnessSet(std::string cipherValue)
     map<char, double> perUniFreq;
     map<string, double> perDiFreq;
     map<string, double> perTriFreq;
+    vector<pair<string,double>> sortedUniFreq;
 
     // UNI FIT START
 
@@ -276,12 +312,14 @@ double GACipher::fitnessSet(std::string cipherValue)
         uniFit /= 2;
     }
 
+    exit(EXIT_SUCCESS);
+
     // UNI FIT END
 
 
-    /*// DI FIT START
+    // DI FIT START
 
-    // get the sum of the frequencies that are in diGraph
+   /// get the sum of the frequencies that are in diGraph
     sum = 0;
     for (int i = 1; i < translated.size(); i++) {
         sum += diFreqMap[translated.substr(i-1,2)];
@@ -315,7 +353,7 @@ double GACipher::fitnessSet(std::string cipherValue)
 
         // diError is expected frequency - observed frequency
         diError += abs(perDiFreq[translated.substr(i - 1, 2)] - frequency);
-    }*/
+    }
 
     // calculate diFit
     set<string> alreadyCounted;
@@ -353,9 +391,9 @@ double GACipher::fitnessSet(std::string cipherValue)
         }
     }
 
-    /*if (diError > 2) {
+    if (diError > 2) {
         diFit /= 5;
-    }*/
+    }
 
     // DI FIT END 
 
@@ -363,7 +401,7 @@ double GACipher::fitnessSet(std::string cipherValue)
     // TRI FIT START
 
     // get the sum of the frequencies that are in diGraph
-   /* sum = 0;
+    sum = 0;
     for (int i = 2; i < translated.size(); i++) {
         sum += triFreqMap[translated.substr(i - 2, 3)];
     }
@@ -377,7 +415,7 @@ double GACipher::fitnessSet(std::string cipherValue)
         perTriFreq.insert(elemTri);
     }
 
-    // calculate diError (|percievedFreq - observedFreq|)
+    // calculate triError (|percievedFreq - observedFreq|)
     for (int i = 2; i < translated.size(); i++) {
         
         // current substring
@@ -396,9 +434,10 @@ double GACipher::fitnessSet(std::string cipherValue)
 
         // diError is expected frequency - observed frequency
         triError += abs(perTriFreq[translated.substr(i - 2, 3)] - frequency);
-    }*/
+    }
+    
 
-    // calculate diFit
+    // calculate triFit
     alreadyCounted.clear();
     for (int i = 2; i < translated.size(); i++) {
 
@@ -434,16 +473,21 @@ double GACipher::fitnessSet(std::string cipherValue)
         }
     }
 
-    /*if (triFit > 0) {
-       cout << "tr" << "  " << triFit << endl;
-    }*/
+    //if (triError > 0) {
+    //   cout << "tr" << "  " << triFit << endl;
+    //}
 
 
 
     // TRI FIT END
+    //cout << uniFit << "  " << diFit * 1.5 << "  " << triFit * 5 << "   " << translated << endl;
 
-   return uniFit + (diFit * 1.5) + (triFit * 5);
-   //return uniFit;
+    if (!prune(cipherValue, translated)) {
+        //cout << "A" << endl;
+        return 0; //(uniFit * .1);
+    }
+    return (uniFit + (diFit * 1.5) + (triFit * 5));
+   return uniFit;
 }
 
 bool GACipher::mutate(std::pair<std::string, double>& ttm)
@@ -472,25 +516,9 @@ void GACipher::printFitness()
     }
 }
 
-void GACipher::decode(std::string cipher)
-{
-    std::string tempMessage = codedMessage;
-    std::map<std::string, double> messFreqUni;
-    std::map<std::string, double> messFreqDi;
-    std::map<std::string, double> messFreqTri;
-
-    // std::cout << "Cipher: " << cipher << std::endl;
-    std::cout << "Coded Message:         " << tempMessage << std::endl;
-    for (int i = 0; i < tempMessage.size(); i++)
-    {
-        tempMessage[i] = alphabet[cipher.find(tempMessage[i])];
-    }
-    std::cout << "Coded Message Decoded: " << tempMessage << std::endl;
-}
 
 std::string GACipher::translate(std::string cipherValue)
 {
-    std::string cipherKey = codedMessageChars;
     string output = "";
 
     for (int i = 0; i < codedMessage.size(); i++) {
@@ -523,16 +551,21 @@ void GACipher::run(std::string filename)
     // population <- (random cipher keys)
     //randPopulation();
     //for_each(population.begin(), population.end(), [](auto it) { cout << it.first << " " << it.second << endl; });
-    cout << codedMessageChars << endl;
+    //cout << codedMessageChars << endl;
     pair<string,double> elem;
-    elem.first = "LEKBRTUAHDONISPWGMC";
-    elem.second = fitnessSet(elem.first);
-    population.push_back(elem);
+    //elem.first = "GVBMOUSDKWTLIEHFANCY"; // test_1 (broken now)
+    //elem.first = "PKNCIDXLAQVWYOSGBFRZUJHMTE"; // test_5
+    //elem.first = "RSPWQJBCOXIYMFVHLGKTZNAUED"; // test_6
+    //elem.first = "KEWZIARCUHPMGYJLDOVNFTSXQB";
+    //elem.second = fitnessSet(elem.first);
+    //cout << translate(elem.first) << endl;;
+    //population.push_back(elem);
     randPopulation();
     sort(population.begin(), population.end(), [](const std::pair<std::string, double> a, const std::pair<std::string, double> b) { return a.second > b.second; });
-    for_each(population.begin(), population.end(), [](auto it) { cout << it.first << " " << it.second << endl; }); cout << endl << endl;// cout << i << endl; 
+    for_each(population.begin(), population.end(), [this](auto it) { cout << this->translate(it.first) << " " << it.second << endl; }); cout << endl << endl;// cout << i << endl; 
    // exit(EXIT_SUCCESS);
 
+    // an e got switche to a z this porb happen in crosssover, make map and have coxxover chose new letter based on ccurenced in trans
 
     
 
@@ -548,7 +581,7 @@ void GACipher::run(std::string filename)
     // Run this as long as is defined in the GA
     // constructor
     int gen = 1;
-    while (gen < 10000)
+    while (gen < 30000)
     {
         // declare our intermediate population
         // and our new population.
@@ -560,7 +593,10 @@ void GACipher::run(std::string filename)
         sort(population.begin(), population.end(), [](const std::pair<std::string, double> a, const std::pair<std::string, double> b) { return a.second > b.second; });
 
         
-        
+          if (gen % 150 == 0) {
+            cout << gen << endl;
+            cout << translate(population[0].first) << " " << population[0].second << endl << translate(population[1].first) << " " << population[1].second << endl <<  translate(population[2].first) << " " << population[2].second << endl << endl; 
+        }
         //cout << population.size() << endl;
         double i = 0;
         //cout << population[0].first << " " << population[0].second << endl;
@@ -575,13 +611,14 @@ void GACipher::run(std::string filename)
         {
             bestCipher = population[0];
             cout << "Gen: " << gen << endl;
-            cout <<      "Code Key: " << codedMessageChars << endl;
+            cout << "Code Key: " << cipherKey << endl;
             //vector<string> in;
             //for_each(population.begin(), population.end(), [&in](auto it) { if (find(in.begin(), in.end(), it.first) == in.end()) in.push_back(it.first); });
             std::cout << "New Best: " << bestCipher.first << std::endl << "Fitnes: " << bestCipher.second << std::endl; //<< "Unique Chromosomes: " << in.size() << std::endl;
-            cout << translate(bestCipher.first) << endl << endl;
-
-            
+            cout << translate(bestCipher.first) << endl << endl;;
+            //cout << "THEQUICKFOXJUMPSOVERTHELAZYDOGITISCOMMONLYUSEDFORTOUCHTYPINGPRACTICEITISALSOUSEDTOTESTTYPEWRITERSANDCOMPUTERKEYBOARDSSHOWFONTSANDOTHERAPPLICATIONSINVOLVINGALLOFTHELETTERSINTHEENGLISHALPHABETOWINGTOITSBREVITYANDCOHERENCEITHASBECOMEWIDELYKNOWN" << endl << endl;
+            //cout << "YWEOEOYWZHNCPZOYYZOYDIOZLZWIKZIYYWZYEXZEIXXIBECPYWEOEYEODUSSZCYHMYLNRNSYMOZKZCICFEIXYESZFYWZLZIYWZSXICOIMOYWIYOUXXZSEODNXECPEIXCNYZGDEYZFOASECPEOXMRIKNSEYZOZIONC"  << endl << "THISISTHELONGESTTESTCASEWEHAVEATTHETIMEIAMMAKINGTHISITISCURRENTLYTWOFORTYSEVENANDIAMTIREDTHEWEATHERMANSAYSTHATSUMMERISCOMINGIAMNOTEXCITEDSPRINGISMYFAVORITESEASON" << endl << endl; // test 5
+            //cout << "THEDAYSGROWLONGASISITINMYBEDIAMTIREDANDSTILLSOMEDAYITHINKIWILLESCAPESOFTWAREENGINEERINGTHATISAROUGHCLASSLORDHELPMEGETTHROUGHCOLLEGE" << endl << endl; // test_6
         }
 
         // normalize current population
@@ -607,182 +644,129 @@ void GACipher::run(std::string filename)
                 intermediatePopulation.push_back(temp);
             }
 		}
-        //for_each(intermediatePopulation.begin(), intermediatePopulation.end(), [](auto it) { cout << it.first << " " << it.second << endl; });
+
 
         // elitism
-        /*for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             mutate(intermediatePopulation[i]);
+            intermediatePopulation[i].second = fitnessSet(intermediatePopulation[i].first);
             newPopulation.push_back(intermediatePopulation[i]);
             intermediatePopulation.erase(intermediatePopulation.begin());
-        }*/
-
-        
+        }
 
         // Generate our new population.
         while (!intermediatePopulation.empty())
         {
             // copyRate% chance of being pushed
             // directly into the next gen.
-            if (dist(engine) < copyRate || intermediatePopulation.size() == 1)
-            {
-                // Run the mutate function on the
-                // currently being viewed population
-                // pair
-                // std::cout << intermediatePopulation[0].first << " " << intermediatePopulation[0].second << std::endl;
-                //bool flag = mutate(intermediatePopulation[0]);
-                // std::cout << intermediatePopulation[0].first << " " << intermediatePopulation[0].second << std::endl;
-
-                // If the pair was mutated we need to
-                // recalculate the fitness.
-                //if (flag)
-                //{
-                //    intermediatePopulation[0].second = fitnessSet(intermediatePopulation[0].first);
-                //}
-
+            if (dist(engine) < copyRate || intermediatePopulation.size() == 1) {
                 newPopulation.push_back(intermediatePopulation[0]);
                 intermediatePopulation.erase(intermediatePopulation.begin());
             }
-            // 100-copyRate% chance of crossover
-            else
-            {
-                //int crossOverIndex = dist(engine)*codedMessageChars.size();
-                int crossOverIndex = rand() % (codedMessageChars.size() - 1) + 1;
-                //int partnerIndex = dist(engine)*intermediatePopulation.size();
+            else {
+                // crossOverIndex : index where crossover occurs (1 - size of cipherKey)
+                // partnerIndex : index of second genetor in intermediatePopulation (1 - size of intermediatePopulation)
+                int crossOverIndex = rand() % (24) + 1;
                 int partnerIndex = rand() % (intermediatePopulation.size() - 1) + 1;
+
                 std::string cross1;
                 std::string cross2;
 
-                // If the partnerIndex is not equal to
-                // zero then we can crossover. If it is
-                // equal to zero we can not crossover
-                // so let's just push it directly through
-                //if (partnerIndex != 0)
-                //{
-                // Collect the two pairs to be
-                // crossed.
+                // two genetors
+                // genetor A will always be the first index in the intermediatePopulation
+                // genetor B is the chromosome at partnerIndex in the intemediatePopulation
                 std::pair<std::string, double> chromoA = intermediatePopulation[0];
                 std::pair<std::string, double> chromoB = intermediatePopulation[partnerIndex];
-                //cout << crossOverIndex << endl;
-                //cout << "pop size " << intermediatePopulation.size() << "   partnerIndex " << partnerIndex << endl;
-                //cout << "A: " << chromoA.first << endl;
-                //cout << "B: " << chromoB.first << endl << endl;
 
-                // Put in the first part of each
-                // set.
+                // populate two new strings with first section of crossover (index 0 - crosOverIndex)
                 cross1 = chromoA.first.substr(0,crossOverIndex);
                 cross2 = chromoB.first.substr(0,crossOverIndex);
-                //std::cout << "1 part 1   " << cross1 << std::endl;
-                //std::cout << "2 part 1   " << cross2 << std::endl;
 
+                //cout << crossOverIndex << endl;
                 
+                // cross1 second half
+                for (int i = crossOverIndex; i < (26); i++) {
 
-                // Now iterate through the partner
-                // string for both pushing each
-                // letter that isn't in the cross
-                // into the new cross. if letter is in pick a random letter in aplhabet that not in current chromo (first) (string)
-
-                // WE CAN ADD BIAS TO RANDOM CHARS ADDED BY CREATING VECTOR THAT IS SORTED AS UNI_FREQ IS, for char in this vector if not in chromo.first, add it, this gives
-                //  precedence to chars which should appear a lot (AND SHOULD WORK)
-
-                // i want diff to only contian chars that arent in cross1/2 or upcoming in opposite chromo
-                for (int i = crossOverIndex; i < chromoB.first.size(); i++) {
-                    if (cross1.find(chromoB.first[i]) == std::string::npos) {
+                    // if the char being considered is not in the first half of the cross over then we can add it
+                    //      to the second half of the crossover
+                    if (cross1.find(chromoB.first[i]) == string::npos) {
                         cross1 += chromoB.first[i];
                     }
+
+                    // if the char being considered is in the first half of the crossover replace it with a valid, random char
                     else {
-                        //cout << "crossed 1" << endl;
-                        std::vector<char> chars = alphabet;
-                        std::set<char> crossChars;
-
-                        // make current chars in cross1 and upcoming chars in opposite chromo into a vector
-                        for_each(cross1.begin(), cross1.end(), [&crossChars](auto it) { crossChars.insert(it); });
-                        for_each(chromoB.first.begin() + crossOverIndex, chromoB.first.end(), [&crossChars](auto it) { crossChars.insert(it); });
-                        //cout << "INDEX  " << *(chromoB.first.begin() + crossOverIndex) << endl;
-                        //cout << "CC 1 "; for_each(crossChars.begin(), crossChars.end(), [](auto it) { cout << it << " "; }); cout << endl;
-
-                        // find all chars in alpha bet that are not in cross1, put those in diff
-                        vector<char> diff;
-                        set_difference(chars.begin(), chars.end(), crossChars.begin(), crossChars.end(), std::inserter(diff, diff.begin()));
-                        //for_each(diff.begin(), diff.end(), [](auto it) { cout << it << " "; }); cout << endl;
-                        
-                        // choose a random char in diff and add it to cross1
-                        cross1 += diff[rand() % diff.size()];
+                        // str : the string in the other chromosome (B) to be crossed over into crossed 1
+                        // we do not want to choose a character that is to come
+                        string str = cross1 + chromoB.first.substr(crossOverIndex, 25 - crossOverIndex);
+                        for (int k = 0; k < 26; k++) {
+                            string chr = uniFreq[k].first; 
+                            if (str.find(chr) == string::npos) {
+                                cross1 += chr;
+                                //cout << "a";
+                                break;
+                            }
+                        }
                     }
                 }
 
-                for (int i = crossOverIndex; i < chromoA.first.size(); i++) {
-                    if (cross2.find(chromoA.first[i]) == std::string::npos) {
+                // cross2 second hal
+                for (int i = crossOverIndex; i < 26; i++) {
+
+                    // if the char being considered is not in the first half of the cross over then we can add it
+                    //      to the second half of the crossover
+                    if (cross2.find(chromoA.first[i]) == string::npos) {
                         cross2 += chromoA.first[i];
                     }
+
+                    // if the char being considered is in the first half of the crossover replace it with a valid, random char
                     else {
-                        //cout << "crossed 2" << endl;
-                        std::vector<char> chars = alphabet;
-                        std::set<char> crossChars;
-
-                        // make current chars in cross2 and upcoming chars in opposite chromo into a vector
-                        for_each(cross2.begin(), cross2.end(), [&crossChars](auto it) { crossChars.insert(it); });
-                        for_each(chromoA.first.begin() + crossOverIndex, chromoA.first.end(), [&crossChars](auto it) { crossChars.insert(it); });
-                        //cout << "CC 2 "; for_each(crossChars.begin(), crossChars.end(), [](auto it) { cout << it << " "; }); cout << endl;
-
-
-                        // find all chars in alpha bet that are not in chromoA, put those in diff
-                        vector<char> diff;
-                        set_difference(chars.begin(), chars.end(), crossChars.begin(), crossChars.end(), std::inserter(diff, diff.begin()));
-                        //for_each(diff.begin(), diff.end(), [](auto it) { cout << it << " "; }); cout << endl;
-                        
-                        cross2 += diff[rand() % diff.size()];
+                        // str : the string in the other chromosome (A) to be crossed over into crossed 2
+                        // we do not want to choose a character that is to come
+                        string str = cross2 + chromoA.first.substr(crossOverIndex, 25 - crossOverIndex);
+                        for (int k = 0; k < 26; k++) {
+                            string chr = uniFreq[k].first; 
+                            if (str.find(chr) == string::npos) {
+                                cross2 += chr;
+                                // cout << "a";
+                                break;
+                            }
+                        }
                     }
                 }
-
-                /*if (chromoA.first.size() != codedMessageChars.size()) {
-                    cout << "A ERROR" << endl;
-                    exit(EXIT_FAILURE);
-                }
-                if (chromoB.first.size() != codedMessageChars.size()) {
-
-                    cout << "B ERROR" << endl;
-                    exit(EXIT_FAILURE);
-                }*/
                 
+                /*
+                cout << crossOverIndex << endl;
+                cout << chromoA.first.substr(0, crossOverIndex) << "  " << chromoA.first.substr(crossOverIndex, 26 - crossOverIndex)  << endl;
+                cout << chromoB.first.substr(0, crossOverIndex) << "  " << chromoB.first.substr(crossOverIndex, 26 - crossOverIndex)  << endl;
+                cout << cross1.substr(0, crossOverIndex) << "  " << cross1.substr(crossOverIndex, 26 - crossOverIndex)  << endl;
+                cout << cross2.substr(0, crossOverIndex) << "  " << cross2.substr(crossOverIndex, 26 - crossOverIndex)  << endl;
+                */
+    
+                // remove genetors from intermediatePopulation
                 intermediatePopulation.erase(intermediatePopulation.begin()+partnerIndex);
                 intermediatePopulation.erase(intermediatePopulation.begin());
 
-                //std::cout << "1 final   " << cross1 << std::endl;
-                //std::cout << "2 final   " << cross2 << std::endl;
-
-                
-
+                // create pairs so cross1/cross2 can be added to population
                 chromoA.first = cross1;
                 chromoB.first = cross2;
-                chromoA.second = fitnessSet(chromoA.first);
-                chromoB.second = fitnessSet(chromoB.first);
-                //chromoA.second = 0;
-                //chromoB.second = 0;
+
+                // mutate them
                 mutate(chromoA);
                 mutate(chromoB);
 
+                chromoA.second = fitnessSet(chromoA.first);
+                chromoB.second = fitnessSet(chromoB.first);
+                
+      
+                
+                // ad to new pop
                 newPopulation.push_back(chromoA);
                 newPopulation.push_back(chromoB);
-            //}
-
             }
-            //cout << "norm " << endl; for_each(newPopulation.begin(), newPopulation.end(), [](auto it) { cout << it.first << " " << it.second << endl; }); cout << endl << endl;
-
-            //cout << "new " << endl;for_each(newPopulation.begin(), newPopulation.end(), [](auto it) { cout << it.first << " " << it.second << endl; });
-
-
-
             population = newPopulation;
         }
-
-        // Get the current time
-        //currentTime = std::chrono::high_resolution_clock::now();
-        //compare = currentTime - startTime;
         gen++;
-        if (gen % 100 == 0) {
-            cout << gen << endl;
-            //cout << population[0].first << " " << population[0].second << "   " << population[1].first << " " << population[1].second << "   " <<  population[2].first << " " << population[2].second << endl;        }
-        }
+        //cout << gen << endl;
     }
-    cout << bestCipher.first << " " << bestCipher.second << endl;
+    cout << bestCipher.first << " " << bestCipher.second <<  " " << translate(bestCipher.first) << endl;
 }

@@ -6,7 +6,7 @@ def main():
     freq_2 = {}
     freq_3 = {}
 
-    for filena5me in files:
+    for filename in files:
 
         # open file
         file = open(filename, "r", encoding="utf-8")
@@ -51,8 +51,8 @@ def main():
     i = 0
     for k, v in sorted(freq_2.items(), reverse = True, key = lambda x : x[1]):
         file.write(k + " " + str(v / sum(freq_2.values())) + "\n")
-        if i == 56:
-            break
+        #if i == 56:
+            #break
         i += 1
     file.close()
 
