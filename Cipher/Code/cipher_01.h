@@ -302,13 +302,13 @@ double GACipher::fitnessSet(std::string key)
 
     int factor = 1;
     //if (!prune(key, translated))
-     //   factor *= 5;
+    //    factor *= 5;
 
     //cout << uniError << " " << diError << " " << 3 * triFit << endl;
     //cout << 5 - (factor * (uniError + (1.5 * diError))) + triFit << endl;
     //exit(EXIT_SUCCESS);
 
-    return 5 - (factor * (uniError + (1.5 * diError))) + (3 * triFit);
+    return 5 - (factor * (uniError + (1.5 * diError))) + (3.5 * triFit);
 }
 
 
@@ -370,17 +370,17 @@ void GACipher::run(std::string filename)
     loadCodedMessage(filename);
     loadFreq();
 
-    pair<string,double> elem;
+    //pair<string,double> elem;
     //elem.first = "EPVBLKXRTUCOJIZFASHMDNQWGY"; // test_1
     //elem.first = "ESLPUXKJQCRIWAOFVBYDNTMHGZ"; // test_4
-    elem.first = "PKNCIDXLAQVWYOSGBFRZUJHMTE"; // test_5
+    //elem.first = "PKNCIDXLAQVWYOSGBFRZUJHMTE"; // test_5
     //elem.first = "RSPWQJBCOXIYMFVHLGKTZNAUED"; // test_6
-    elem.second = fitnessSet(elem.first);
-    population.push_back(elem);
+    //elem.second = fitnessSet(elem.first);
+    //population.push_back(elem);
     
     randPopulation();
     sort(population.begin(), population.end(), [](const std::pair<std::string, double> a, const std::pair<std::string, double> b) { return a.second > b.second; });
-    for_each(population.begin(), population.end(), [this](auto it) { cout << this->translate(it.first) << " " << it.second << endl; }); cout << endl << endl;// cout << i << endl; 
+    //for_each(population.begin(), population.end(), [this](auto it) { cout << this->translate(it.first) << " " << it.second << endl; }); cout << endl << endl;// cout << i << endl; 
 
     std::cout << "Message Loaded" << std::endl;
     std::pair<std::string, double> bestCipher("",-100);
@@ -467,7 +467,7 @@ void GACipher::run(std::string filename)
                 doubleCrossover(crossB, crossPoints, genitorB, genitorA);
             }
             else {
-                cout << "The only available crossocers are single and double." << endl;
+                cout << "The only available crossovers are single and double." << endl;
                 exit(EXIT_FAILURE);
             }
 

@@ -30,10 +30,13 @@ int main()
 	cin >> elitism;
 	*/
 
+
+	// change prune to switching things around
 	int generations = 10000;
 	int popSize = 100;
 	int crossPoints = 2;
-	double mutationRate = 0.1;
+	double mutationRate = 0.2;
+	double copyRate = 0;
 	bool elitism = 1;
 	bool mutElitism = 1;
 	string filename = "../Test_Files/test_5.txt";
