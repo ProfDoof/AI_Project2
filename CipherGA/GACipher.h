@@ -18,7 +18,11 @@ class GACipher
         double mutationRate;
         double timeToRun;
         int popSize;
+        double uniWeight;
+        double diWeight;
+        double triWeight;
         std::map<std::string, double> freqChart;
+        std::string actualKey;
 
         // Coded Message and Population
         std::string codedMessage;
@@ -34,7 +38,7 @@ class GACipher
     public:
         // Constructors
         GACipher();
-        GACipher(double cR, double mR, double ttr, int pS);
+        GACipher(double cR, double mR, double ttr, int pS,std::string aK);
         ~GACipher();
 
         // Getters and Setters
@@ -46,6 +50,8 @@ class GACipher
 
         double getPopSize() { return popSize; }
         void setPopSize(double pS) { popSize = pS; }
+
+        void setFreqWeights(double uW, double dW, double tW);
 
         // Methods
         // pre-run methods
@@ -72,15 +78,25 @@ GACipher::GACipher()
 
 }
 
-GACipher::GACipher(double cR, double mR, double ttr, int pS) : copyRate(cR), mutationRate(mR), timeToRun(ttr), popSize(pS)
+GACipher::GACipher(double cR, double mR, double ttr, int pS, std::string aK) : copyRate(cR), mutationRate(mR), timeToRun(ttr), popSize(pS), actualKey(aK)
 {
-
+    uniWeight = 1;
+    diWeight = 1;
+    triWeight = 1;
 }
 
 // Destructor
 GACipher::~GACipher()
 {
 
+}
+
+// "Complicated" Getter and/or Setter methods
+void GACipher::setFreqWeights(double uW, double dW, double tW)
+{
+    uniWeight = uW;
+    diWeight = dW;
+    triWeight = tW;
 }
 
 // Pre-run methods
@@ -110,6 +126,10 @@ void GACipher::loadCodedMessage(std::string filename)
     std::ifstream fin;
     fin.open(filename);
     getline(fin, codedMessage);
+    for (int i = 0; i < codedMessage.size(); i++ )
+    {
+        codedMessage[i] = toupper(codedMessage[i]);
+    }
     //std::cout << codedMessage << std::endl;
     fin.close();
 }
@@ -186,46 +206,91 @@ double GACipher::fitnessSet(std::string cipher)
     // Calculate the Sum of Squares error for
     // each type of frequency chart.
     double errorUni = 0, errorDi = 0, errorTri = 0;
-    for (auto it = messFreqUni.begin(); it != messFreqUni.end(); it++)
+    for (auto it = freqChart.begin(); it != freqChart.end(); it++)
     {
-        if (freqChart.find(it->first)==freqChart.end())
+        double error = 0;
+        if (it->first.size() == 1)
         {
-            freqChart[it->first] = 0;
+            if (messFreqUni.find(it->first)==messFreqUni.end())
+            {
+                messFreqUni[it->first] = 0;
+            }
+
+            error = (it->second)-(messFreqUni[it->first]/(tempMessage.size()-1));
+            error *= error;
+            errorTri += error;
         }
-
-        double error = (it->second/tempMessage.size())-freqChart[it->first];
-        error *= error;
-        errorUni += error;
-    }
-    errorUni = sqrt(errorUni/messFreqUni.size());
-
-    for (auto it = messFreqDi.begin(); it != messFreqDi.end(); it++)
-    {
-        if (freqChart.find(it->first)==freqChart.end())
+        else if (it->first.size() == 2)
         {
-            freqChart[it->first] = 0;
+            if (messFreqDi.find(it->first)==messFreqDi.end())
+            {
+                messFreqDi[it->first] = 0;
+            }
+
+            error = (it->second)-(messFreqDi[it->first]/(tempMessage.size()-1));
+            error *= error;
+            errorTri += error;
         }
-
-        double error = (it->second/tempMessage.size())-freqChart[it->first];
-        error *= error;
-        errorDi += error;
-    }
-    errorDi = sqrt(errorDi/messFreqDi.size());
-
-    for (auto it = messFreqTri.begin(); it != messFreqTri.end(); it++)
-    {
-        if (freqChart.find(it->first)==freqChart.end())
+        else
         {
-            freqChart[it->first] = 0;
+            if (messFreqTri.find(it->first)==messFreqTri.end())
+            {
+                messFreqTri[it->first] = 0;
+            }
+
+            error = (it->second)-(messFreqTri[it->first]/(tempMessage.size()-1));
+            error *= error;
+            errorTri += error;
         }
-
-        double error = (it->second/tempMessage.size())-freqChart[it->first];
-        error *= error;
-        errorTri += error;
     }
-    errorTri = sqrt(errorTri/messFreqTri.size());
+    errorUni = sqrt(errorUni/26);
+    errorDi = sqrt(errorDi/57);
+    errorTri = sqrt(errorTri/115);
 
-    return (errorUni * .88)+(errorDi * .1)+(errorTri * .02);
+    return (errorUni*uniWeight) + (errorDi*diWeight) + (errorTri*triWeight);
+    // Sum of squares error looking from the perspective of the frequency chart generated for the code. Let's try the other direction why don't we.
+    // double errorUni = 0, errorDi = 0, errorTri = 0;
+    // for (auto it = messFreqUni.begin(); it != messFreqUni.end(); it++)
+    // {
+    //     double error = 0;
+        // if (freqChart.find(it->first)!=freqChart.end())
+        // {
+        //     error = (it->second/tempMessage.size())-freqChart[it->first];
+        // }
+    //
+    //
+    //     error *= error;
+    //     errorUni += error;
+    // }
+    // errorUni = sqrt(errorUni/messFreqUni.size());
+    //
+    // for (auto it = messFreqDi.begin(); it != messFreqDi.end(); it++)
+    // {
+    //     double error = 0;
+    //     if (freqChart.find(it->first)!=freqChart.end())
+    //     {
+    //         error = (it->second/(tempMessage.size()-1))-freqChart[it->first];
+    //     }
+    //
+    //     error *= error;
+    //     errorDi += error;
+    // }
+    // errorDi = sqrt(errorDi/messFreqDi.size());
+    //
+    // for (auto it = messFreqTri.begin(); it != messFreqTri.end(); it++)
+    // {
+    //     double error = 0;
+    //     if (freqChart.find(it->first)!=freqChart.end())
+    //     {
+    //         error = (it->second/(tempMessage.size()-2))-freqChart[it->first];
+    //     }
+    //
+    //     error *= error;
+    //     errorTri += error;
+    // }
+    // errorTri = sqrt(errorTri/messFreqTri.size());
+    //
+    // return errorUni + (errorDi * 3)+(errorTri * 9);
 }
 
 bool GACipher::mutate(std::pair<std::string, double>& ttm)
@@ -456,4 +521,8 @@ void GACipher::run(std::string filename)
         currentTime = std::chrono::high_resolution_clock::now();
         compare = currentTime - startTime;
     }
+
+    std::cout << "\nThe best key found based on fitness was " << bestCipher.first << std::endl;
+    std::cout << "The actual key should be " << actualKey << std::endl;
+    std::cout << "\nThe fitness for the actual key was " << fitnessSet(actualKey) << std::endl;
 }
