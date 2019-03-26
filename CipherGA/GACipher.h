@@ -22,7 +22,7 @@ class GACipher
         double copyRate;
         double mutRate;
         double timeToRun;
-        
+
         double uniWeight;
         double diWeight;
         double triWeight;
@@ -76,7 +76,7 @@ class GACipher
 
 // CONSTRUCTOR
 GACipher::GACipher(double _copyRate, double _mutRate, double _time, int _popSize, std::string _actualKey, int _crossovers, int _prune, bool _elitism) {
-    
+
     copyRate = _copyRate;
     mutRate = _mutRate;
     timeToRun = _time;
@@ -158,7 +158,7 @@ void GACipher::randPopulation()
 // INCOMPLETE (im sure there is more pruning to be done)
 bool prune(std::string key, std::string translated) {
     std::vector<std::string> improbable_doubles = { "WW", "AA", "II", "BB", "UU", "ZZ", "KK", "XX", "VV", "JJ", "QQ" };
-    
+
     for (int i = 1; i < translated.size(); i++)
         if (translated[i-1] == translated[i] && find(improbable_doubles.begin(), improbable_doubles.end(), translated.substr(i-1,2)) != improbable_doubles.end())
             return false;
@@ -408,7 +408,7 @@ void GACipher::doubleCrossover(std::string &str, std::vector<int> crossPoints, s
 
 // the method "run"
 void GACipher::run(std::string filename) {
-    
+
     int elitismCopyAmount = popSize / 10;
 
 
@@ -417,14 +417,9 @@ void GACipher::run(std::string filename) {
     loadCodedMessage(filename);
     loadFreq();
     randPopulation();
-<<<<<<< HEAD
-    std::cout << "Message Loaded" << std::endl << std::endl;
-    // printFitness();
-=======
     sort(population.begin(), population.end(), [](const std::pair<std::string, double> a, const std::pair<std::string, double> b) { return a.second < b.second; });
     std::cout << "MESSAGE LOADED" << std::endl;
 
->>>>>>> f8c899bb39b7e703a3033caa20fb3c677d320540
 
     // Declare the timer variables
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -442,18 +437,12 @@ void GACipher::run(std::string filename) {
         // SORT POPULATION
         sort(population.begin(), population.end(), [](const std::pair<std::string, double> a, const std::pair<std::string, double> b) { return a.second < b.second; });
 
-<<<<<<< HEAD
         // Check and see if we have found a better
         // fitting cipher than our current best
         // in this case lower is better (it's like
         // golf)
         if (bestCipher.first == "" || population[0].second < bestCipher.second)
         {
-=======
-
-        // NEW BEST (lower is better)
-        if (population[0].second < bestCipher.second) {
->>>>>>> f8c899bb39b7e703a3033caa20fb3c677d320540
             bestCipher = population[0];
             std::cout << "New Best: " << bestCipher.first << std::endl << "Fitnes: " << bestCipher.second << std::endl;
             decode(bestCipher.first);
@@ -463,19 +452,12 @@ void GACipher::run(std::string filename) {
         // BUILD INTERMEDIATE POPULATION
         for (int i = 0; interPop.size() < popSize; i++, i %= popSize)
         {
-<<<<<<< HEAD
-            // ???????????? This needs work to work
-            // correctly because the fitness is no
-            // longer between 0 and 1 for certain.
-            if (dist(engine) <= 1.00-population[i].second) {
-=======
             if (dist(engine) <= normalize(population[i].second, population.back().second, population[0].second)) {
->>>>>>> f8c899bb39b7e703a3033caa20fb3c677d320540
                 std::pair<std::string, double> temp(population[i]);
                 interPop.push_back(temp);
             }
 		}
-        
+
 
         // Generate our new population.
         while (!interPop.empty())
@@ -510,7 +492,7 @@ void GACipher::run(std::string filename) {
             crossPoints.push_back((dist(engine) * (24 / crossovers)) + 1);
             for (int i = 1; i < crossovers; i++)
                 crossPoints.push_back((dist(engine) * (23 - (crossPoints[i-1]))) + crossPoints[i-1] + 1);
-            
+
             int partnerIndex = (dist(engine) * (interPop.size() - 1) + 1);
 
 
@@ -537,7 +519,7 @@ void GACipher::run(std::string filename) {
                 exit(EXIT_FAILURE);
             }
 
-        
+
 
             //for (int i = 0; i < 26; i++) {
             //    if (count(crossA.begin(), crossA.end(), alphabet[i]) > 1 || count(crossB.begin(), crossB.end(), alphabet[i]) > 1) {
@@ -545,8 +527,8 @@ void GACipher::run(std::string filename) {
             //        exit(EXIT_SUCCESS);
             //    }
             //}
-            
-            
+
+
             //out << crossPoints[0] << endl;
             //out << genitorA.substr(0, crossPoints[0]) << "  " << genitorA.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
             //out << genitorB.substr(0, crossPoints[0]) << "  " << genitorB.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
@@ -558,9 +540,9 @@ void GACipher::run(std::string filename) {
             //cout << genitorB.substr(0,crossPoints[0]) << " " << genitorB.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << genitorB.substr(crossPoints[1], 26 - crossPoints[1]) << endl << endl;
             //cout << crossA.substr(0,crossPoints[0]) << " " << crossA.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << crossA.substr(crossPoints[1], 26 - crossPoints[1]) << endl;
             //cout << crossB.substr(0,crossPoints[0]) << " " << crossB.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << crossB.substr(crossPoints[1], 26 - crossPoints[1]) << endl;
-            
+
             //exit(EXIT_SUCCESS);
-            
+
 
             // remove genetors from interPop
             interPop.erase(interPop.begin() + partnerIndex);
@@ -585,11 +567,7 @@ void GACipher::run(std::string filename) {
         // Get the current time
         currentTime = std::chrono::high_resolution_clock::now();
         compare = currentTime - startTime;
-<<<<<<< HEAD
-        break;
-=======
         gen++;
->>>>>>> f8c899bb39b7e703a3033caa20fb3c677d320540
     }
 
     std::cout << "\nThe best key found based on fitness was " << bestCipher.first << std::endl;

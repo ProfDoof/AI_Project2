@@ -3,13 +3,6 @@
 
 int main()
 {
-<<<<<<< HEAD
-    double copyRate = .5;
-    double mutationRate = .05;
-    int popSize = 500;
-    double minutes = 2;
-    minutes *= 60000;
-=======
     int popSize = 100;
     int crossPoints = 2;
     int prune = 0;              // 0 -> no pruning (cut or flip)  | 1 -> cut  | 2 -> flip  (NOT MOD)
@@ -21,15 +14,14 @@ int main()
 
     GACipher test(copyRate,
                 mutationRate,
-                _time, 
-                popSize, 
+                _time,
+                popSize,
                 actualKey,
                 crossPoints,
                 prune,
                 elitism);
 
 
->>>>>>> f8c899bb39b7e703a3033caa20fb3c677d320540
     double uniWeight = 1;
     double diWeight = 1;
     double triWeight = 1;
