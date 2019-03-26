@@ -27,6 +27,7 @@ class GACipher
         // Coded Message and Population
         std::string codedMessage;
         std::vector<std::pair<std::string,double>> population;
+        std::pair<std::string, double> bestCipher("",0);
 
         // Random Engine
         std::mt19937 engine{static_cast<long unsigned int>(time(0))};
@@ -344,14 +345,13 @@ void GACipher::run(std::string filename)
     loadCodedMessage(filename);
     loadFreq();
     randPopulation();
-    std::cout << "Message Loaded" << std::endl;
+    std::cout << "Message Loaded" << std::endl << std::endl;
     // printFitness();
 
     // Declare the timer variables
     auto startTime = std::chrono::high_resolution_clock::now();
     auto currentTime = startTime;
     std::chrono::duration<double, std::milli> compare = currentTime - startTime;
-    std::pair<std::string, double> bestCipher("",100);
 
     // Run this as long as is defined in the GA
     // constructor
@@ -375,11 +375,12 @@ void GACipher::run(std::string filename)
         // fitting cipher than our current best
         // in this case lower is better (it's like
         // golf)
-        if (population[0].second < bestCipher.second)
+        if (bestCipher.first == "" || population[0].second < bestCipher.second)
         {
             bestCipher = population[0];
             std::cout << "New Best: " << bestCipher.first << std::endl << "Fitnes: " << bestCipher.second << std::endl;
             decode(bestCipher.first);
+            std::cout << std::endl;
         }
 
         // Build our intermediate population.
@@ -388,7 +389,7 @@ void GACipher::run(std::string filename)
             // ???????????? This needs work to work
             // correctly because the fitness is no
             // longer between 0 and 1 for certain.
-            if (dist(engine) <= 1.05-(population[i].second/population.back().second)) {
+            if (dist(engine) <= 1.00-population[i].second) {
                 std::pair<std::string, double> temp(population[i]);
                 intermediatePopulation.push_back(temp);
             }
@@ -520,9 +521,20 @@ void GACipher::run(std::string filename)
         // Get the current time
         currentTime = std::chrono::high_resolution_clock::now();
         compare = currentTime - startTime;
+        break;
     }
 
     std::cout << "\nThe best key found based on fitness was " << bestCipher.first << std::endl;
-    std::cout << "The actual key should be " << actualKey << std::endl;
-    std::cout << "\nThe fitness for the actual key was " << fitnessSet(actualKey) << std::endl;
+    std::cout << "The actual key should be                " << actualKey;
+    std::cout << "\nThe fitness for the actual key was      " << fitnessSet(actualKey);
+    std::cout << "\nThe number of same letters between the best and the actual key is ";
+    int count = 0;
+    for (int i = 0; i < 26; i++)
+    {
+        if (bestCipher.first[i]==actualKey[i])
+        {
+            count++;
+        }
+    }
+    std::cout << count << std::endl << std::endl;
 }
