@@ -18,7 +18,7 @@ class GACipher
         int popSize;
         int crossovers;
         int prune;
-        bool elitism;
+        double elitism;
         double copyRate;
         double mutRate;
         double timeToRun;
@@ -33,7 +33,7 @@ class GACipher
         // Coded Message and Population
         std::string codedMessage;
         std::vector<std::pair<std::string,double>> population;
-        std::pair<std::string, double> bestCipher("",0);
+        std::pair<std::string, double> bestCipher;
 
         // Random Engine
         std::mt19937 engine{static_cast<long unsigned int>(time(0))};
@@ -46,7 +46,7 @@ class GACipher
 
     public:
         // CONSTRUCTORS
-        GACipher(double _copyRate, double _mutRate, double _time, int _popSize, std::string _actualKey, int _crossovers, int _prune, bool _elitism);
+        GACipher(double _copyRate, double _mutRate, double _time, int _popSize, std::string _actualKey, int _crossovers, int _prune, double _elitism);
 
         void setFreqWeights(double uW, double dW, double tW);
 
@@ -75,7 +75,7 @@ class GACipher
 };
 
 // CONSTRUCTOR
-GACipher::GACipher(double _copyRate, double _mutRate, double _time, int _popSize, std::string _actualKey, int _crossovers, int _prune, bool _elitism) {
+GACipher::GACipher(double _copyRate, double _mutRate, double _time, int _popSize, std::string _actualKey, int _crossovers, int _prune, double _elitism) {
 
     copyRate = _copyRate;
     mutRate = _mutRate;
@@ -90,6 +90,7 @@ GACipher::GACipher(double _copyRate, double _mutRate, double _time, int _popSize
     uniWeight = 1;
     diWeight = 1;
     triWeight = 1;
+    bestCipher = std::make_pair("",0);
 }
 
 

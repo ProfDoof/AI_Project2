@@ -9,7 +9,7 @@ int main()
     double mutationRate = .1;
     double copyRate = .1;
     double _time = 60 * 60000;
-    bool elitism = 1;
+    double elitism = .1;
     std::string actualKey = "NVPJUEGRAQZCLKBWYDOHFISXTM";
 
     GACipher test(copyRate,
