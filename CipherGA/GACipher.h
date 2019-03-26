@@ -9,18 +9,24 @@
 #include <string>
 #include <chrono>
 #include <algorithm>
+#include <set>
 
 class GACipher
 {
     private:
         // Adjustable Knobs for the Genetic Algorithm
-        double copyRate;
-        double mutationRate;
-        double timeToRun;
         int popSize;
+        int crossovers;
+        int prune;
+        bool elitism;
+        double copyRate;
+        double mutRate;
+        double timeToRun;
+        
         double uniWeight;
         double diWeight;
         double triWeight;
+
         std::map<std::string, double> freqChart;
         std::string actualKey;
 
@@ -33,25 +39,19 @@ class GACipher
         std::uniform_real_distribution<double> dist{0.0, 1.0};
 
         // Alphabet
+        std::string alphabetString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        std::set<char> alphabetSet = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
         std::vector<char> alphabet = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
 
     public:
-        // Constructors
-        GACipher();
-        GACipher(double cR, double mR, double ttr, int pS,std::string aK);
-        ~GACipher();
-
-        // Getters and Setters
-        double getCopyRate() { return copyRate; }
-        void setCopyRate(double cR) { copyRate = cR; }
-
-        double getMutationRate() { return mutationRate; }
-        void setMutationRate(double mR) { mutationRate = mR; }
-
-        double getPopSize() { return popSize; }
-        void setPopSize(double pS) { popSize = pS; }
+        // CONSTRUCTORS
+        GACipher(double _copyRate, double _mutRate, double _time, int _popSize, std::string _actualKey, int _crossovers, int _prune, bool _elitism);
 
         void setFreqWeights(double uW, double dW, double tW);
+
+
+        void singleCrossover(std::string &str, int crossPoint, std::string gen);
+        void doubleCrossover(std::string &str, std::vector<int> crossPoints, std::string genA, std::string genB);
 
         // Methods
         // pre-run methods
@@ -65,6 +65,7 @@ class GACipher
         void catastrophicMutation(std::string lastString);
         bool mutate(std::pair<std::string, double>& ttm);
         void printFitness();
+        std::string translate(std::string key);
 
         // post-run methods
 
@@ -72,28 +73,27 @@ class GACipher
         void run(std::string filename);
 };
 
-// Constructors
-GACipher::GACipher()
-{
+// CONSTRUCTOR
+GACipher::GACipher(double _copyRate, double _mutRate, double _time, int _popSize, std::string _actualKey, int _crossovers, int _prune, bool _elitism) {
+    
+    copyRate = _copyRate;
+    mutRate = _mutRate;
+    timeToRun = _time;
+    popSize = _popSize;
+    actualKey = _actualKey;
+    crossovers = _crossovers;
+    prune = _prune;
+    elitism = _elitism;
 
-}
-
-GACipher::GACipher(double cR, double mR, double ttr, int pS, std::string aK) : copyRate(cR), mutationRate(mR), timeToRun(ttr), popSize(pS), actualKey(aK)
-{
+    // DEFAULT WEIGHTS
     uniWeight = 1;
     diWeight = 1;
     triWeight = 1;
 }
 
-// Destructor
-GACipher::~GACipher()
-{
-
-}
 
 // "Complicated" Getter and/or Setter methods
-void GACipher::setFreqWeights(double uW, double dW, double tW)
-{
+void GACipher::setFreqWeights(double uW, double dW, double tW) {
     uniWeight = uW;
     diWeight = dW;
     triWeight = tW;
@@ -136,26 +136,57 @@ void GACipher::loadCodedMessage(std::string filename)
 
 void GACipher::randPopulation()
 {
-    std::vector<char> genGeneList;
-    int randIndex;
-    std::pair<std::string, double> temp;
-    while (population.size() <= popSize)
-    {
-        genGeneList = alphabet;
-        temp.first = "";
-        for (int i = 0; i < 26; i++)
-        {
-            randIndex = (dist(engine)*genGeneList.size());
-            temp.first += genGeneList[randIndex];
-            genGeneList.erase(genGeneList.begin()+randIndex);
+    while (population.size() < popSize) {
+        std::string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        std::pair<std::string, double> elem;
+
+        // generate cipher key
+        for (int i = 0; i < 26; i++) {
+            int index = (dist(engine) * chars.size());
+            elem.first += chars[index];
+            chars.erase(index, 1);
         }
-        // std::cout << temp.first << std::endl;
-        temp.second = fitnessSet(temp.first);
-        population.push_back(temp);
+        elem.second = fitnessSet(elem.first);
+        population.push_back(elem);
     }
 }
 
+
+
 // run methods
+// INCOMPLETE (im sure there is more pruning to be done)
+bool prune(std::string key, std::string translated) {
+    std::vector<std::string> improbable_doubles = { "WW", "AA", "II", "BB", "UU", "ZZ", "KK", "XX", "VV", "JJ", "QQ" };
+    
+    for (int i = 1; i < translated.size(); i++)
+        if (translated[i-1] == translated[i] && find(improbable_doubles.begin(), improbable_doubles.end(), translated.substr(i-1,2)) != improbable_doubles.end())
+            return false;
+
+    if (translated.back() == 'V' || translated.back() == 'J')
+        return false;
+
+    return true;
+}
+
+
+bool GACipher::mutate(std::pair<std::string, double>& ttm)
+{
+    bool mutated = false;
+    for (int i = 0; i < 26; i++)
+    {
+        if (dist(engine) <= mutRate)
+        {
+            int randIndex = dist(engine) * 26;
+            char temp = ttm.first[i];
+            ttm.first[i] = ttm.first[randIndex];
+            ttm.first[randIndex] = temp;
+            mutated = true;
+        }
+    }
+    return mutated;
+}
+
+
 double GACipher::fitnessSet(std::string cipher)
 {
     std::string tempMessage = codedMessage;
@@ -293,23 +324,17 @@ double GACipher::fitnessSet(std::string cipher)
     // return errorUni + (errorDi * 3)+(errorTri * 9);
 }
 
-bool GACipher::mutate(std::pair<std::string, double>& ttm)
-{
-    bool ttr = false;
-    for (int i = 0; i < ttm.first.size(); i++)
-    {
-        if (dist(engine) <= mutationRate)
-        {
-            int randIndex = dist(engine)*ttm.first.size();
-            char temp = ttm.first[i];
-            ttm.first[i] = ttm.first[randIndex];
-            ttm.first[randIndex] = temp;
-            ttr = true;
-        }
-    }
+std::string GACipher::translate(std::string key) {
+    std::string output = "";
 
-    return ttr;
+    for (int i = 0; i < codedMessage.size(); i++) {
+        int index = alphabetString.find(codedMessage[i]);
+        output += key[index];
+    }
+    return output;
 }
+
+
 
 void GACipher::printFitness()
 {
@@ -335,17 +360,65 @@ void GACipher::decode(std::string cipher)
     std::cout << "Coded Message Decoded: " << tempMessage << std::endl;
 }
 
+
+double normalize(double n, double max, double min) {
+    return (((0.95 - 0.05) * (n - min)) / (max - min)) + 0.05;
+}
+
+void GACipher::singleCrossover(std::string &str, int crossPoint, std::string gen) {
+    std::string chars = str + gen.substr(crossPoint, 26 - crossPoint);
+    std::set<char> charsIn;
+    std::vector<char> charsOut;
+    for_each(chars.begin(), chars.end(), [&charsIn](auto it) { if (charsIn.count(it) == 0) charsIn.insert(it); });
+    set_difference(alphabetSet.begin(), alphabetSet.end(), charsIn.begin(), charsIn.end(), back_inserter(charsOut));
+
+    for (int i = crossPoint; i < 26; i++) {
+        if (str.find(gen[i]) == std::string::npos)
+            str += gen[i];
+        else {
+            int index = dist(engine) * charsOut.size();
+            str += charsOut[index];
+            charsOut.erase(charsOut.begin() + index);
+        }
+    }
+}
+
+// we could easily make this multi
+void GACipher::doubleCrossover(std::string &str, std::vector<int> crossPoints, std::string genA, std::string genB) {
+    std::string chars =  str + genB.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) + genA.substr(crossPoints[1], 25 - crossPoints[1]);
+    std::set<char> charsIn;
+    std::vector<char> charsOut;
+    for_each(chars.begin(), chars.end(), [&charsIn](auto it) { if (charsIn.count(it) == 0) charsIn.insert(it); });
+    set_difference(alphabetSet.begin(), alphabetSet.end(), charsIn.begin(), charsIn.end(), back_inserter(charsOut));
+
+    for (int i = crossPoints[0]; i < crossPoints[1]; i++) {
+        if (str.find(genB[i]) == std::string::npos)
+            str += genB[i];
+        else {
+            int index = dist(engine) * charsOut.size();
+            str += charsOut[index];
+            charsOut.erase(charsOut.begin() + index);
+        }
+    }
+    singleCrossover(str, crossPoints[1], genB);
+}
+
 // post-run methods
 
 // the method "run"
-void GACipher::run(std::string filename)
-{
-    std::cout << "Start Run" << std::endl;
+void GACipher::run(std::string filename) {
+    
+    int elitismCopyAmount = popSize / 10;
+
+
+
+    std::cout << "START RUN" << std::endl;
     loadCodedMessage(filename);
     loadFreq();
     randPopulation();
-    std::cout << "Message Loaded" << std::endl;
-    // printFitness();
+    sort(population.begin(), population.end(), [](const std::pair<std::string, double> a, const std::pair<std::string, double> b) { return a.second < b.second; });
+    std::cout << "MESSAGE LOADED" << std::endl;
+
 
     // Declare the timer variables
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -355,171 +428,142 @@ void GACipher::run(std::string filename)
 
     // Run this as long as is defined in the GA
     // constructor
-    while (compare.count() < timeToRun)
-    {
-        // declare our intermediate population
-        // and our new population.
-        std::vector<std::pair<std::string,double>> intermediatePopulation;
-        std::vector<std::pair<std::string,double>> newPopulation;
+    int gen = 1;
+    while (compare.count() < timeToRun) {
+        std::vector<std::pair<std::string,double>> interPop;
+        std::vector<std::pair<std::string,double>> nextPop;
+        std::vector<std::pair<std::string,double>> normPop;
 
-        // Sort our population by fitness.
-        sort(population.begin(), population.end(),
-            [](const std::pair<std::string, double> a,
-               const std::pair<std::string, double> b)
-            {
-                return a.second < b.second;
-            });
+        // SORT POPULATION
+        sort(population.begin(), population.end(), [](const std::pair<std::string, double> a, const std::pair<std::string, double> b) { return a.second < b.second; });
 
 
-        // Check and see if we have found a better
-        // fitting cipher than our current best
-        // in this case lower is better (it's like
-        // golf)
-        if (population[0].second < bestCipher.second)
-        {
+        // NEW BEST (lower is better)
+        if (population[0].second < bestCipher.second) {
             bestCipher = population[0];
             std::cout << "New Best: " << bestCipher.first << std::endl << "Fitnes: " << bestCipher.second << std::endl;
             decode(bestCipher.first);
         }
 
-        // Build our intermediate population.
-        for (int i = 0; intermediatePopulation.size() < popSize; i++, i %= popSize)
+        // BUILD INTERMEDIATE POPULATION
+        for (int i = 0; interPop.size() < popSize; i++, i %= popSize)
         {
-            // ???????????? This needs work to work
-            // correctly because the fitness is no
-            // longer between 0 and 1 for certain.
-            if (dist(engine) <= 1.05-(population[i].second/population.back().second)) {
+            if (dist(engine) <= normalize(population[i].second, population.back().second, population[0].second)) {
                 std::pair<std::string, double> temp(population[i]);
-                intermediatePopulation.push_back(temp);
+                interPop.push_back(temp);
             }
 		}
+        
 
         // Generate our new population.
-        while (!intermediatePopulation.empty())
+        while (!interPop.empty())
         {
             // copyRate% chance of being pushed
             // directly into the next gen.
-            if (dist(engine) < copyRate || intermediatePopulation.size() == 1)
+            if (dist(engine) < copyRate || interPop.size() == 1)
             {
                 // Run the mutate function on the
                 // currently being viewed population
                 // pair
                 // std::cout << intermediatePopulation[0].first << " " << intermediatePopulation[0].second << std::endl;
-                bool flag = mutate(intermediatePopulation[0]);
+                bool flag = mutate(interPop[0]);
                 // std::cout << intermediatePopulation[0].first << " " << intermediatePopulation[0].second << std::endl;
 
                 // If the pair was mutated we need to
                 // recalculate the fitness.
                 if (flag)
                 {
-                    intermediatePopulation[0].second = fitnessSet(intermediatePopulation[0].first);
+                    interPop[0].second = fitnessSet(interPop[0].first);
                 }
 
-                newPopulation.push_back(intermediatePopulation[0]);
-                intermediatePopulation.erase(intermediatePopulation.begin());
+                nextPop.push_back(interPop[0]);
+                interPop.erase(interPop.begin());
             }
             // 100-copyRate% chance of crossover
             else
             {
-                int crossOverIndex = dist(engine)*26;
-                int partnerIndex = dist(engine)*intermediatePopulation.size();
-                std::string cross1;
-                std::string cross2;
+                // crossPoints -> indices where crossover will occur
+            // partnerIndex -> index of second genetor
+            std::vector<int> crossPoints;
+            crossPoints.push_back((dist(engine) * (24 / crossovers)) + 1);
+            for (int i = 1; i < crossovers; i++)
+                crossPoints.push_back((dist(engine) * (23 - (crossPoints[i-1]))) + crossPoints[i-1] + 1);
+            
+            int partnerIndex = (dist(engine) * (interPop.size() - 1) + 1);
 
-                // If the partnerIndex is not equal to
-                // zero then we can crossover. If it is
-                // equal to zero we can not crossover
-                // so let's just push it directly through
-                if (partnerIndex != 0)
-                {
-                    // Collect the two pairs to be
-                    // crossed.
-                    std::pair<std::string, double> chromoA = intermediatePopulation[0];
-                    std::pair<std::string, double> chromoB = intermediatePopulation[partnerIndex];
 
-                    // Put in the first part of each
-                    // set.
-                    cross1 = chromoA.first.substr(0,crossOverIndex);
-                    cross2 = chromoB.first.substr(0,crossOverIndex);
-                    // std::cout << cross1 << std::endl;
-                    // std::cout << cross2 << std::endl;
+            // genetor A -> always at the first index charsIn the intermediate population
+            // genetor B -> at a random index (not 0) charsIn the intermediate population
+            std::string genitorA = interPop[0].first;
+            std::string genitorB = interPop[partnerIndex].first;
 
-                    // Now iterate through the partner
-                    // string for both pushing each
-                    // letter that isn't in the cross
-                    // into the new cross.
-                    for (int i = 0; i < chromoB.first.size(); i++)
-                    {
-                        bool flag = true;
-                        for (int j = 0; flag && j < cross1.size(); j++)
-                        {
-                            if (cross1[j] == chromoB.first[i])
-                            {
-                                flag = false;
-                            }
-                        }
 
-                        if (flag)
-                        {
-                            cross1 += chromoB.first[i];
-                        }
-                    }
+            // first section of crossover
+            std::string crossA = genitorA.substr(0, crossPoints[0]);
+            std::string crossB = genitorB.substr(0, crossPoints[0]);
 
-                    for (int i = 0; i < chromoA.first.size(); i++)
-                    {
-                        bool flag = true;
-                        for (int j = 0; flag && j < cross2.size(); j++)
-                        {
-                            if (cross2[j] == chromoA.first[i])
-                            {
-                                flag = false;
-                            }
-                        }
-
-                        if (flag)
-                        {
-                            cross2 += chromoA.first[i];
-                        }
-                    }
-                    // std::cout << cross1 << std::endl;
-                    // std::cout << cross2 << std::endl;
-
-                    intermediatePopulation.erase(intermediatePopulation.begin()+partnerIndex);
-                    intermediatePopulation.erase(intermediatePopulation.begin());
-
-                    chromoA.first = cross1;
-                    chromoB.first = cross2;
-                    mutate(chromoA);
-                    mutate(chromoB);
-
-                    newPopulation.push_back(chromoA);
-                    newPopulation.push_back(chromoB);
-                }
-                else
-                {
-                    // Run the mutate function on the
-                    // currently being viewed population
-                    // pair
-                    bool flag = mutate(intermediatePopulation[0]);
-
-                    // If the pair was mutated we need to
-                    // recalculate the fitness.
-                    if (flag)
-                    {
-                        intermediatePopulation[0].second = fitnessSet(intermediatePopulation[0].first);
-                    }
-
-                    newPopulation.push_back(intermediatePopulation[0]);
-                    intermediatePopulation.erase(intermediatePopulation.begin());
-                }
+            if (crossovers == 1) {
+                singleCrossover(crossA, crossPoints[0], genitorB);
+                singleCrossover(crossB, crossPoints[0], genitorA);
+            }
+            else if (crossovers == 2) {
+                doubleCrossover(crossA, crossPoints, genitorA, genitorB);
+                doubleCrossover(crossB, crossPoints, genitorB, genitorA);
+            }
+            else {
+                std::cout << "The only available crossovers are single and double." << std::endl;
+                exit(EXIT_FAILURE);
             }
 
-            population = newPopulation;
+        
+
+            //for (int i = 0; i < 26; i++) {
+            //    if (count(crossA.begin(), crossA.end(), alphabet[i]) > 1 || count(crossB.begin(), crossB.end(), alphabet[i]) > 1) {
+            //        cout << "FAILED" << endl;
+            //        exit(EXIT_SUCCESS);
+            //    }
+            //}
+            
+            
+            //out << crossPoints[0] << endl;
+            //out << genitorA.substr(0, crossPoints[0]) << "  " << genitorA.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
+            //out << genitorB.substr(0, crossPoints[0]) << "  " << genitorB.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
+            //out << crossA.substr(0, crossPoints[0]) << "  " << crossA.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
+            //out << crossB.substr(0, crossPoints[0]) << "  " << crossB.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
+
+            //cout << crossPoints[0] << " " << crossPoints[1] << endl;
+            //cout << genitorA.substr(0,crossPoints[0]) << " " << genitorA.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << genitorA.substr(crossPoints[1], 26 - crossPoints[1]) << endl;
+            //cout << genitorB.substr(0,crossPoints[0]) << " " << genitorB.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << genitorB.substr(crossPoints[1], 26 - crossPoints[1]) << endl << endl;
+            //cout << crossA.substr(0,crossPoints[0]) << " " << crossA.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << crossA.substr(crossPoints[1], 26 - crossPoints[1]) << endl;
+            //cout << crossB.substr(0,crossPoints[0]) << " " << crossB.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << crossB.substr(crossPoints[1], 26 - crossPoints[1]) << endl;
+            
+            //exit(EXIT_SUCCESS);
+            
+
+            // remove genetors from interPop
+            interPop.erase(interPop.begin() + partnerIndex);
+            interPop.erase(interPop.begin());
+
+            // create pairs so crossA/crossB can be added to population
+            std::pair<std::string,double> elemA (crossA, fitnessSet(crossA));
+            std::pair<std::string,double> elemB (crossB, fitnessSet(crossB));
+
+            // mutate them
+            mutate(elemA);
+            mutate(elemB);
+
+            // ad to new pop
+            nextPop.push_back(elemA);
+            nextPop.push_back(elemB);
+            }
+
+            population = nextPop;
         }
 
         // Get the current time
         currentTime = std::chrono::high_resolution_clock::now();
         compare = currentTime - startTime;
+        gen++;
     }
 
     std::cout << "\nThe best key found based on fitness was " << bestCipher.first << std::endl;
