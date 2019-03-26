@@ -18,7 +18,7 @@ class GACipher
         int popSize;
         int crossovers;
         int prune;
-        double elitism;
+        int elitism;
         double copyRate;
         double mutRate;
         double timeToRun;
@@ -84,7 +84,7 @@ GACipher::GACipher(double _copyRate, double _mutRate, double _time, int _popSize
     actualKey = _actualKey;
     crossovers = _crossovers;
     prune = _prune;
-    elitism = _elitism;
+    elitism = popSize*_elitism;
 
     // DEFAULT WEIGHTS
     uniWeight = 1;
@@ -450,8 +450,14 @@ void GACipher::run(std::string filename) {
             std::cout << std::endl;
         }
 
+        for (int i = 0; i < elitism; i++)
+        {
+            nextPop.push_back(population[0]);
+            population.erase(population.begin());
+        }
+
         // BUILD INTERMEDIATE POPULATION
-        for (int i = 0; interPop.size() < popSize; i++, i %= popSize)
+        for (int i = 0; interPop.size() < popSize-(elitism); i++, i %= popSize)
         {
             if (dist(engine) <= normalize(population[i].second, population.back().second, population[0].second)) {
                 std::pair<std::string, double> temp(population[i]);
@@ -488,78 +494,84 @@ void GACipher::run(std::string filename) {
             else
             {
                 // crossPoints -> indices where crossover will occur
-            // partnerIndex -> index of second genetor
-            std::vector<int> crossPoints;
-            crossPoints.push_back((dist(engine) * (24 / crossovers)) + 1);
-            for (int i = 1; i < crossovers; i++)
-                crossPoints.push_back((dist(engine) * (23 - (crossPoints[i-1]))) + crossPoints[i-1] + 1);
+                // partnerIndex -> index of second genetor
+                std::vector<int> crossPoints;
+                crossPoints.push_back((dist(engine) * (24 / crossovers)) + 1);
+                for (int i = 1; i < crossovers; i++)
+                {
+                    crossPoints.push_back((dist(engine) * (23 - (crossPoints[i-1]))) + crossPoints[i-1] + 1);
+                }
 
-            int partnerIndex = (dist(engine) * (interPop.size() - 1) + 1);
-
-
-            // genetor A -> always at the first index charsIn the intermediate population
-            // genetor B -> at a random index (not 0) charsIn the intermediate population
-            std::string genitorA = interPop[0].first;
-            std::string genitorB = interPop[partnerIndex].first;
-
-
-            // first section of crossover
-            std::string crossA = genitorA.substr(0, crossPoints[0]);
-            std::string crossB = genitorB.substr(0, crossPoints[0]);
-
-            if (crossovers == 1) {
-                singleCrossover(crossA, crossPoints[0], genitorB);
-                singleCrossover(crossB, crossPoints[0], genitorA);
-            }
-            else if (crossovers == 2) {
-                doubleCrossover(crossA, crossPoints, genitorA, genitorB);
-                doubleCrossover(crossB, crossPoints, genitorB, genitorA);
-            }
-            else {
-                std::cout << "The only available crossovers are single and double." << std::endl;
-                exit(EXIT_FAILURE);
-            }
+                int partnerIndex = (dist(engine) * (interPop.size() - 1) + 1);
 
 
 
-            //for (int i = 0; i < 26; i++) {
-            //    if (count(crossA.begin(), crossA.end(), alphabet[i]) > 1 || count(crossB.begin(), crossB.end(), alphabet[i]) > 1) {
-            //        cout << "FAILED" << endl;
-            //        exit(EXIT_SUCCESS);
-            //    }
-            //}
+                // genetor A -> always at the first index charsIn the intermediate population
+                // genetor B -> at a random index (not 0) charsIn the intermediate population
+                std::string genitorA = interPop[0].first;
+                std::string genitorB = interPop[partnerIndex].first;
+
+                // std::cout << crossPoints[0] << " " << crossPoints[1] << " " << genitorA << " " << genitorB << std::endl;
+
+                std::cout << "A: " << genitorA << " " << genitorA.size() << " " << crossPoints[0] << std::endl;
+                std::cout << "B: " << genitorB << " " << genitorB.size() << " " << crossPoints[0] << std::endl;
+                // first section of crossover
+                std::string crossA = genitorA.substr(0, crossPoints[0]);
+                std::string crossB = genitorB.substr(0, crossPoints[0]);
+
+                if (crossovers == 1) {
+                    singleCrossover(crossA, crossPoints[0], genitorB);
+                    singleCrossover(crossB, crossPoints[0], genitorA);
+                }
+                else if (crossovers == 2) {
+                    doubleCrossover(crossA, crossPoints, genitorA, genitorB);
+                    doubleCrossover(crossB, crossPoints, genitorB, genitorA);
+                }
+                else {
+                    std::cout << "The only available crossovers are single and double." << std::endl;
+                    exit(EXIT_FAILURE);
+                }
 
 
-            //out << crossPoints[0] << endl;
-            //out << genitorA.substr(0, crossPoints[0]) << "  " << genitorA.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
-            //out << genitorB.substr(0, crossPoints[0]) << "  " << genitorB.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
-            //out << crossA.substr(0, crossPoints[0]) << "  " << crossA.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
-            //out << crossB.substr(0, crossPoints[0]) << "  " << crossB.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
 
-            //cout << crossPoints[0] << " " << crossPoints[1] << endl;
-            //cout << genitorA.substr(0,crossPoints[0]) << " " << genitorA.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << genitorA.substr(crossPoints[1], 26 - crossPoints[1]) << endl;
-            //cout << genitorB.substr(0,crossPoints[0]) << " " << genitorB.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << genitorB.substr(crossPoints[1], 26 - crossPoints[1]) << endl << endl;
-            //cout << crossA.substr(0,crossPoints[0]) << " " << crossA.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << crossA.substr(crossPoints[1], 26 - crossPoints[1]) << endl;
-            //cout << crossB.substr(0,crossPoints[0]) << " " << crossB.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << crossB.substr(crossPoints[1], 26 - crossPoints[1]) << endl;
-
-            //exit(EXIT_SUCCESS);
+                //for (int i = 0; i < 26; i++) {
+                //    if (count(crossA.begin(), crossA.end(), alphabet[i]) > 1 || count(crossB.begin(), crossB.end(), alphabet[i]) > 1) {
+                //        cout << "FAILED" << endl;
+                //        exit(EXIT_SUCCESS);
+                //    }
+                //}
 
 
-            // remove genetors from interPop
-            interPop.erase(interPop.begin() + partnerIndex);
-            interPop.erase(interPop.begin());
+                //out << crossPoints[0] << endl;
+                //out << genitorA.substr(0, crossPoints[0]) << "  " << genitorA.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
+                //out << genitorB.substr(0, crossPoints[0]) << "  " << genitorB.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
+                //out << crossA.substr(0, crossPoints[0]) << "  " << crossA.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
+                //out << crossB.substr(0, crossPoints[0]) << "  " << crossB.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
 
-            // create pairs so crossA/crossB can be added to population
-            std::pair<std::string,double> elemA (crossA, fitnessSet(crossA));
-            std::pair<std::string,double> elemB (crossB, fitnessSet(crossB));
+                //cout << crossPoints[0] << " " << crossPoints[1] << endl;
+                //cout << genitorA.substr(0,crossPoints[0]) << " " << genitorA.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << genitorA.substr(crossPoints[1], 26 - crossPoints[1]) << endl;
+                //cout << genitorB.substr(0,crossPoints[0]) << " " << genitorB.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << genitorB.substr(crossPoints[1], 26 - crossPoints[1]) << endl << endl;
+                //cout << crossA.substr(0,crossPoints[0]) << " " << crossA.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << crossA.substr(crossPoints[1], 26 - crossPoints[1]) << endl;
+                //cout << crossB.substr(0,crossPoints[0]) << " " << crossB.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << crossB.substr(crossPoints[1], 26 - crossPoints[1]) << endl;
 
-            // mutate them
-            mutate(elemA);
-            mutate(elemB);
+                //exit(EXIT_SUCCESS);
 
-            // ad to new pop
-            nextPop.push_back(elemA);
-            nextPop.push_back(elemB);
+
+                // remove genetors from interPop
+                interPop.erase(interPop.begin() + partnerIndex);
+                interPop.erase(interPop.begin());
+
+                // create pairs so crossA/crossB can be added to population
+                std::pair<std::string,double> elemA (crossA, fitnessSet(crossA));
+                std::pair<std::string,double> elemB (crossB, fitnessSet(crossB));
+
+                // mutate them
+                mutate(elemA);
+                mutate(elemB);
+
+                // ad to new pop
+                nextPop.push_back(elemA);
+                nextPop.push_back(elemB);
             }
 
             population = nextPop;
