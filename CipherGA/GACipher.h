@@ -453,7 +453,6 @@ void GACipher::run(std::string filename) {
         for (int i = 0; i < elitism; i++)
         {
             nextPop.push_back(population[0]);
-            population.erase(population.begin());
         }
 
         // BUILD INTERMEDIATE POPULATION
@@ -503,6 +502,7 @@ void GACipher::run(std::string filename) {
                 }
 
                 int partnerIndex = (dist(engine) * (interPop.size() - 1) + 1);
+                // std::cout << "Partner Index: " << partnerIndex << std::endl;
 
 
 
@@ -513,8 +513,8 @@ void GACipher::run(std::string filename) {
 
                 // std::cout << crossPoints[0] << " " << crossPoints[1] << " " << genitorA << " " << genitorB << std::endl;
 
-                std::cout << "A: " << genitorA << " " << genitorA.size() << " " << crossPoints[0] << std::endl;
-                std::cout << "B: " << genitorB << " " << genitorB.size() << " " << crossPoints[0] << std::endl;
+                // std::cout << "A: " << genitorA << " " << genitorA.size() << " " << crossPoints[0] << std::endl;
+                // std::cout << "B: " << genitorB << " " << genitorB.size() << " " << crossPoints[0] << std::endl;
                 // first section of crossover
                 std::string crossA = genitorA.substr(0, crossPoints[0]);
                 std::string crossB = genitorB.substr(0, crossPoints[0]);
