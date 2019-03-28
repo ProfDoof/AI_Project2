@@ -8,7 +8,7 @@ int main()
     int prune = 0;              // 0 -> no pruning (cut or flip)  | 1 -> cut  | 2 -> flip  (NOT MOD)
     double mutationRate = .1;
     double copyRate = .1;
-    double _time = .1 * 60000;
+    double _time = 12 * 60000;
     double elitism = .1;
     std::string actualKey = "NVPJUEGRAQZCLKBWYDOHFISXTM";
 
@@ -29,7 +29,7 @@ int main()
     // test.setFreqWeights(uniWeight,diWeight,triWeight);
     test.run("../Test_Files/Cipher/test_1.txt");
     // test.setFreqWeights(uniWeight*4,diWeight*2,triWeight);
-    test.run("../Test_Files/Cipher/test_4.txt");
+    // test.run("../Test_Files/Cipher/test_4.txt");
     // test.setFreqWeights(uniWeight*3,diWeight*2,triWeight);
-    test.run("../Test_Files/Cipher/test_5.txt");
+    // test.run("../Test_Files/Cipher/test_5.txt");
 }
