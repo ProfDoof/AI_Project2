@@ -369,6 +369,7 @@ void GACipher::run(std::string filename)
 
     loadCodedMessage(filename);
     loadFreq();
+    //for_each(uniFreq.begin(), uniFreq.end(), [this](auto it) { cout << this->translate(it.first) << " " << it.second << endl; });
 
     //pair<string,double> elem;
     //elem.first = "EPVBLKXRTUCOJIZFASHMDNQWGY"; // test_1
@@ -380,7 +381,7 @@ void GACipher::run(std::string filename)
     
     randPopulation();
     sort(population.begin(), population.end(), [](const std::pair<std::string, double> a, const std::pair<std::string, double> b) { return a.second > b.second; });
-    //for_each(population.begin(), population.end(), [this](auto it) { cout << this->translate(it.first) << " " << it.second << endl; }); cout << endl << endl;// cout << i << endl; 
+    for_each(population.begin(), population.end(), [this](auto it) { cout << this->translate(it.first) << " " << it.second << endl; }); cout << endl << endl;// cout << i << endl; 
 
     std::cout << "Message Loaded" << std::endl;
     std::pair<std::string, double> bestCipher("",-100);

@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <set>
 
+// construct uniFreq then access di and tri based on unireq
+
 class GACipher
 {
     private:
@@ -19,6 +21,7 @@ class GACipher
         int crossovers;
         int prune;
         int elitism;
+        int heuristic;
         double copyRate;
         double mutRate;
         double timeToRun;
@@ -28,6 +31,9 @@ class GACipher
         double triWeight;
 
         std::map<std::string, double> freqChart;
+        std::map<std::string, double> uniFreq;
+        std::map<std::string, double> diFreq;
+        std::map<std::string, double> triFreq;
         std::string actualKey;
 
         // Coded Message and Population
@@ -43,10 +49,12 @@ class GACipher
         std::string alphabetString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         std::set<char> alphabetSet = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
         std::vector<char> alphabet = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
+        std::vector<char> freqOrder = {'E','T','O','A','I','N','S','H','R','L','D','U','M','W','Y','C','F','G','B','P','V','K','X','J','Q','Z'};
+        std::string mostFreqChars = "ETOAINSHRLDUMWYCFGBPVKXJQZ";
 
     public:
         // CONSTRUCTORS
-        GACipher(double _copyRate, double _mutRate, double _time, int _popSize, std::string _actualKey, int _crossovers, int _prune, double _elitism);
+        GACipher(double _copyRate, double _mutRate, double _time, int _popSize, std::string _actualKey, int _crossovers, int _prune, double _elitism, int _heuristic);
 
         void setFreqWeights(double uW, double dW, double tW);
 
@@ -63,8 +71,14 @@ class GACipher
 
         // run methods
         double fitnessSet(std::string cipher);
+        double heuristic_1 (std::string cipher);
+        double heuristic_2 (std::string cipher);
+        double heuristic_3 (std::string cipher);
+        void prunePop(std::vector<std::pair<std::string,double>> &population);
+
         void catastrophicMutation(std::string lastString);
         bool mutate(std::pair<std::string, double>& ttm);
+        bool biasMutate(std::pair<std::string, double>& ttm);
         void printFitness();
         std::string translate(std::string key);
 
@@ -75,7 +89,7 @@ class GACipher
 };
 
 // CONSTRUCTOR
-GACipher::GACipher(double _copyRate, double _mutRate, double _time, int _popSize, std::string _actualKey, int _crossovers, int _prune, double _elitism) {
+GACipher::GACipher(double _copyRate, double _mutRate, double _time, int _popSize, std::string _actualKey, int _crossovers, int _prune, double _elitism, int _heuristic) {
 
     copyRate = _copyRate;
     mutRate = _mutRate;
@@ -85,14 +99,14 @@ GACipher::GACipher(double _copyRate, double _mutRate, double _time, int _popSize
     crossovers = _crossovers;
     prune = _prune;
     elitism = popSize*_elitism;
+    heuristic = _heuristic;
 
     // DEFAULT WEIGHTS
     uniWeight = 1;
     diWeight = 1;
     triWeight = 1;
-    bestCipher = std::make_pair("",0);
+    bestCipher = std::make_pair("",1000);
 }
-
 
 // "Complicated" Getter and/or Setter methods
 void GACipher::setFreqWeights(double uW, double dW, double tW) {
@@ -101,26 +115,34 @@ void GACipher::setFreqWeights(double uW, double dW, double tW) {
     triWeight = tW;
 }
 
-// Pre-run methods
-void GACipher::loadFreq()
-{
+void readFile(std::string filename, std::map<std::string,double> &chart, int size) {
     std::ifstream fin;
     std::string line;
 
-    fin.open("../Frequency/Frequency.txt");
+    fin.open(filename);
 
     if (fin.is_open())
     {
-        while (getline(fin, line))
+        int i = 0;
+        while (getline(fin, line) && i < size)
         {
             std::pair<std::string, double> temp;
             std::stringstream ss(line);
             ss >> temp.first >> temp.second;
-            freqChart.insert(temp);
+            chart.insert(temp);
+            i++;
         }
     }
-
     fin.close();
+}
+
+// Pre-run methods
+void GACipher::loadFreq()
+{
+    readFile("../Frequency/Frequency.txt", freqChart, 1000);
+    readFile("../Frequency/Frequency_1.txt", uniFreq, 1000);
+    readFile("../Frequency/Frequency_2.txt", diFreq, 50);
+    readFile("../Frequency/Frequency_3.txt", triFreq, 50);
 }
 
 void GACipher::loadCodedMessage(std::string filename)
@@ -153,21 +175,34 @@ void GACipher::randPopulation()
     }
 }
 
-
-
 // run methods
 // INCOMPLETE (im sure there is more pruning to be done)
-bool prune(std::string key, std::string translated) {
+bool pruned(std::string key, std::string translated) {
     std::vector<std::string> improbable_doubles = { "WW", "AA", "II", "BB", "UU", "ZZ", "KK", "XX", "VV", "JJ", "QQ" };
 
     for (int i = 1; i < translated.size(); i++)
         if (translated[i-1] == translated[i] && find(improbable_doubles.begin(), improbable_doubles.end(), translated.substr(i-1,2)) != improbable_doubles.end())
-            return false;
+            return true;
 
     if (translated.back() == 'V' || translated.back() == 'J')
-        return false;
+        return true;
 
-    return true;
+    for (int i = 1; i < translated.size(); i++)
+        if (translated[i-1] == 'Q' && translated[i] != 'Q')
+            return true;
+
+
+    // could add QU
+
+    return false;
+}
+
+void GACipher::prunePop(std::vector<std::pair<std::string,double>> &pop) {
+    for (auto it = pop.begin(); it != pop.end(); it++) {
+        if(pruned(it->first,translate(it->first))) {
+            it->second += 2;
+        }
+    }
 }
 
 
@@ -189,8 +224,8 @@ bool GACipher::mutate(std::pair<std::string, double>& ttm)
 }
 
 
-double GACipher::fitnessSet(std::string cipher)
-{
+// FINTNESS 
+double GACipher::heuristic_1 (std::string cipher) {
     std::string tempMessage = codedMessage;
     std::map<std::string, double> messFreqUni;
     std::map<std::string, double> messFreqDi;
@@ -323,8 +358,134 @@ double GACipher::fitnessSet(std::string cipher)
     // }
     // errorTri = sqrt(errorTri/messFreqTri.size());
     //
-    // return errorUni + (errorDi * 3)+(errorTri * 9);
+    // return errorUni + (errorDi * 3)+(errorTri * 9);*/
 }
+
+double GACipher::heuristic_2 (std::string cipher) {
+    std::string translated = translate(cipher);
+
+    // calculate uniError (|percievedFreq - observedFreq|)
+    int occurances = 0;
+    double frequency = 0;
+    double uniError = 0;
+    for (int i = 0; i < 26; i++) {
+
+        // count the number of occurances a character in the translated text
+        occurances = count(translated.begin(), translated.end(), cipher[i]);
+
+        // find the frequency by dividing the number of occurances by the length of the the string
+        double frequency = (1.0 * occurances) / translated.size();
+        
+        // uniError is expected frequency - observed frequency
+        uniError += fabs(uniFreq[cipher.substr(i,1)] - frequency);
+    }
+
+    if (uniError < 0.8) {
+        // calculate diError
+        double diError = 0;
+        std::set<std::string> alreadyCounted;
+        for (int i = 1; i < translated.size(); i++) {
+            std::string str = translated.substr(i - 1, 2);
+
+            if (alreadyCounted.find(str) == alreadyCounted.end()) {
+                // count the number of occurances a character in the translated text
+                occurances = 0;
+
+                for (int k = i; k < translated.size(); k++)
+                    if (translated.substr(k - 1, 2) == str)
+                        occurances++;
+
+                // find the frequency by dividing the number of occurances by the length of the the string
+                double frequency = (1.0 * occurances) / translated.size();
+                diError += fabs(diFreq[str] - frequency);
+
+                // add to set
+                alreadyCounted.insert(str);
+            }
+        }
+
+       // calculate triFit
+        double triFit = 0;
+        for (int i = 2; i < translated.size();i++) {
+            triFit += triFreq[translated.substr(i - 2, 3)];
+        } 
+
+        return  ((uniError * uniWeight) + (diWeight * diError)) - (triWeight * triFit);
+    }
+
+    return 10 - uniError;
+}
+
+double GACipher::heuristic_3 (std::string cipher) {
+    std::string translated = translate(cipher);
+    
+    // calculate uniError (|percievedFreq - observedFreq|)
+    int occurances = 0;
+    double frequency = 0;
+    double uniError = 0;
+    for (int i = 0; i < 26; i++) {
+
+        // count the number of occurances a character in the translated text
+        occurances = count(translated.begin(), translated.end(), cipher[i]);
+
+        // find the frequency by dividing the number of occurances by the length of the the string
+        double frequency = (1.0 * occurances) / translated.size();
+        
+        // uniError is expected frequency - observed frequency
+        uniError += fabs(uniFreq[cipher.substr(i,1)] - frequency);
+    }
+
+    if (uniError < 0.8) {
+
+        // calculate diError
+        double diError = 0;
+        std::set<std::string> alreadyCounted;
+        for (int i = 1; i < translated.size(); i++) {
+            std::string str = translated.substr(i - 1, 2);
+
+            if (alreadyCounted.find(str) == alreadyCounted.end()) {
+                // count the number of occurances a character in the translated text
+                occurances = 0;
+
+                for (int k = i; k < translated.size(); k++)
+                    if (translated.substr(k - 1, 2) == str)
+                        occurances++;
+
+                // find the frequency by dividing the number of occurances by the length of the the string
+                double frequency = (1.0 * occurances) / translated.size();
+                diError += fabs(diFreq[str] - frequency);
+
+                // add to set
+                alreadyCounted.insert(str);
+            }
+        }
+
+        // calculate diFit
+        double diFit = 0;
+        for (int i = 1; i < translated.size(); i++) {
+            diFit += diFreq[translated.substr(i - 1, 2)];
+        }
+       
+        // calculate triFit
+        double triFit = 0;
+        for (int i = 2; i < translated.size();i++) {
+            triFit += triFreq[translated.substr(i - 2, 3)];
+        }
+
+        return uniError + diError - ((diFit * diWeight) + (triFit * triWeight));
+    }
+    return 10 - uniError;
+}
+
+double GACipher::fitnessSet(std::string cipher) {
+    if (heuristic == 1)
+        return heuristic_1(cipher);
+    if (heuristic == 2)
+        return heuristic_2(cipher);
+    if (heuristic == 3)
+        return heuristic_3(cipher);
+}
+
 
 std::string GACipher::translate(std::string key) {
     std::string output = "";
@@ -338,16 +499,14 @@ std::string GACipher::translate(std::string key) {
 
 
 
-void GACipher::printFitness()
-{
+void GACipher::printFitness() {
     for (int i = 0; i < population.size(); i++)
     {
         std::cout << population[i].second << std::endl;
     }
 }
 
-void GACipher::decode(std::string cipher)
-{
+void GACipher::decode(std::string cipher) {
     std::string tempMessage = codedMessage;
     std::map<std::string, double> messFreqUni;
     std::map<std::string, double> messFreqDi;
@@ -355,13 +514,8 @@ void GACipher::decode(std::string cipher)
 
     // std::cout << "Cipher: " << cipher << std::endl;
     std::cout << "Coded Message:         " << tempMessage << std::endl;
-    for (int i = 0; i < tempMessage.size(); i++)
-    {
-        tempMessage[i] = alphabet[cipher.find(tempMessage[i])];
-    }
-    std::cout << "Coded Message Decoded: " << tempMessage << std::endl;
+    std::cout << "Coded Message Decoded: " << translate(cipher) << std::endl;
 }
-
 
 double normalize(double n, double max, double min) {
     return (((0.95 - 0.05) * (n - min)) / (max - min)) + 0.05;
@@ -410,15 +564,20 @@ void GACipher::doubleCrossover(std::string &str, std::vector<int> crossPoints, s
 // the method "run"
 void GACipher::run(std::string filename) {
 
-    int elitismCopyAmount = popSize / 10;
-
-
-
     std::cout << "START RUN" << std::endl;
     loadCodedMessage(filename);
     loadFreq();
     randPopulation();
+    std::pair<std::string,double> elem;
+    //elem.first = "EPVBLKXRTUCOJIZFASHMDNQWGY"; // test_1
+    //elem.first = "NRJTAPYXLHGCWUODIKBVEQMFSZ"; // test_4
+    //elem.first = "PKNCIDXLAQVWYOSGBFRZUJHMTE"; // test_5
+    //elem.first = "RSPWQJBCOXIYMFVHLGKTZNAUED"; // test_6
+    //elem.second = fitnessSet(elem.first);
+    //population.push_back(elem);
     sort(population.begin(), population.end(), [](const std::pair<std::string, double> a, const std::pair<std::string, double> b) { return a.second < b.second; });
+    //for_each(population.begin(), population.end(), [this](auto it) { std::cout << this->translate(it.first) << " " << it.second << std::endl; });
+    //exit(EXIT_SUCCESS);
     std::cout << "MESSAGE LOADED" << std::endl;
 
 
@@ -435,24 +594,34 @@ void GACipher::run(std::string filename) {
         std::vector<std::pair<std::string,double>> nextPop;
         std::vector<std::pair<std::string,double>> normPop;
 
+        if (prune && gen % 100 == 0 & gen > 20000) {
+            prunePop(population);
+        }
+
         // SORT POPULATION
         sort(population.begin(), population.end(), [](const std::pair<std::string, double> a, const std::pair<std::string, double> b) { return a.second < b.second; });
+        //for_each(population.begin(), population.end(), [this](auto it) { std::cout << this->translate(it.first) << " " << it.second << std::endl; }); std::cout << std::endl << std::endl;// cout << i << endl;
+        //exit(EXIT_SUCCESS);
 
-        // Check and see if we have found a better
-        // fitting cipher than our current best
-        // in this case lower is better (it's like
-        // golf)
-        if (bestCipher.first == "" || population[0].second < bestCipher.second)
+
+        // FIND BEST (lower is better)
+        if (population[0].second < bestCipher.second)
         {
+            std::set<std::string> unique;
+            for_each(population.begin(), population.end(), [&unique](auto it) { unique.insert(it.first); });
+            std::cout << "Gen: " << gen << std::endl;
+            std::cout << "New Best: " << population[0].first << std::endl << "Fitness: " << population[0].second << std::endl;
+            std::cout << "Unique Values in Population: " << unique.size() << std::endl;
+           
             bestCipher = population[0];
-            std::cout << "New Best: " << bestCipher.first << std::endl << "Fitnes: " << bestCipher.second << std::endl;
             decode(bestCipher.first);
             std::cout << std::endl;
         }
 
+        // ELITISM
         for (int i = 0; i < elitism; i++)
         {
-            nextPop.push_back(population[0]);
+            nextPop.push_back(population[i]);
         }
 
         // BUILD INTERMEDIATE POPULATION
@@ -475,9 +644,7 @@ void GACipher::run(std::string filename) {
                 // Run the mutate function on the
                 // currently being viewed population
                 // pair
-                // std::cout << intermediatePopulation[0].first << " " << intermediatePopulation[0].second << std::endl;
                 bool flag = mutate(interPop[0]);
-                // std::cout << intermediatePopulation[0].first << " " << intermediatePopulation[0].second << std::endl;
 
                 // If the pair was mutated we need to
                 // recalculate the fitness.
@@ -502,23 +669,17 @@ void GACipher::run(std::string filename) {
                 }
 
                 int partnerIndex = (dist(engine) * (interPop.size() - 1) + 1);
-                // std::cout << "Partner Index: " << partnerIndex << std::endl;
-
-
 
                 // genetor A -> always at the first index charsIn the intermediate population
                 // genetor B -> at a random index (not 0) charsIn the intermediate population
                 std::string genitorA = interPop[0].first;
                 std::string genitorB = interPop[partnerIndex].first;
 
-                // std::cout << crossPoints[0] << " " << crossPoints[1] << " " << genitorA << " " << genitorB << std::endl;
-
-                // std::cout << "A: " << genitorA << " " << genitorA.size() << " " << crossPoints[0] << std::endl;
-                // std::cout << "B: " << genitorB << " " << genitorB.size() << " " << crossPoints[0] << std::endl;
                 // first section of crossover
                 std::string crossA = genitorA.substr(0, crossPoints[0]);
                 std::string crossB = genitorB.substr(0, crossPoints[0]);
 
+                // secod section of crossover
                 if (crossovers == 1) {
                     singleCrossover(crossA, crossPoints[0], genitorB);
                     singleCrossover(crossB, crossPoints[0], genitorA);
@@ -532,48 +693,25 @@ void GACipher::run(std::string filename) {
                     exit(EXIT_FAILURE);
                 }
 
-
-
-                //for (int i = 0; i < 26; i++) {
-                //    if (count(crossA.begin(), crossA.end(), alphabet[i]) > 1 || count(crossB.begin(), crossB.end(), alphabet[i]) > 1) {
-                //        cout << "FAILED" << endl;
-                //        exit(EXIT_SUCCESS);
-                //    }
-                //}
-
-
-                //out << crossPoints[0] << endl;
-                //out << genitorA.substr(0, crossPoints[0]) << "  " << genitorA.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
-                //out << genitorB.substr(0, crossPoints[0]) << "  " << genitorB.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
-                //out << crossA.substr(0, crossPoints[0]) << "  " << crossA.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
-                //out << crossB.substr(0, crossPoints[0]) << "  " << crossB.substr(crossPoints[0], 26 - crossPoints[0])  << endl;
-
-                //cout << crossPoints[0] << " " << crossPoints[1] << endl;
-                //cout << genitorA.substr(0,crossPoints[0]) << " " << genitorA.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << genitorA.substr(crossPoints[1], 26 - crossPoints[1]) << endl;
-                //cout << genitorB.substr(0,crossPoints[0]) << " " << genitorB.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << genitorB.substr(crossPoints[1], 26 - crossPoints[1]) << endl << endl;
-                //cout << crossA.substr(0,crossPoints[0]) << " " << crossA.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << crossA.substr(crossPoints[1], 26 - crossPoints[1]) << endl;
-                //cout << crossB.substr(0,crossPoints[0]) << " " << crossB.substr(crossPoints[0], crossPoints[1] - crossPoints[0]) << " " << crossB.substr(crossPoints[1], 26 - crossPoints[1]) << endl;
-
-                //exit(EXIT_SUCCESS);
-
-
                 // remove genetors from interPop
                 interPop.erase(interPop.begin() + partnerIndex);
                 interPop.erase(interPop.begin());
 
+          
                 // create pairs so crossA/crossB can be added to population
-                std::pair<std::string,double> elemA (crossA, fitnessSet(crossA));
-                std::pair<std::string,double> elemB (crossB, fitnessSet(crossB));
+                std::pair<std::string,double> elemA (crossA, 0);
+                std::pair<std::string,double> elemB (crossB, 0);
 
-                // mutate them
                 mutate(elemA);
                 mutate(elemB);
 
-                // ad to new pop
+                elemA.second = fitnessSet(elemA.first);
+                elemB.second = fitnessSet(elemB.first);
+           
+                // add to new pop
                 nextPop.push_back(elemA);
                 nextPop.push_back(elemB);
             }
-
             population = nextPop;
         }
 
