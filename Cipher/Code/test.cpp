@@ -36,7 +36,7 @@ int main()
 	double mutationRate = 0.1;
 	bool elitism = 1;
 	bool mutElitism = 1;
-	string filename = "../Test_Files/test_5.txt";
+	string filename = "../Test_Files/test_4.txt";
 
 	cout << "-------------------------------------------------" << endl << endl;
 
