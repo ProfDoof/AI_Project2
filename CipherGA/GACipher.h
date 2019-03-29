@@ -142,10 +142,17 @@ void readFile(std::string filename, std::map<std::string,double> &chart, int siz
 // Pre-run methods
 void GACipher::loadFreq()
 {
-    readFile("../Frequency/Frequency.txt", freqChart, 1000);
     readFile("../Frequency/Frequency_1.txt", uniFreq, 1000);
     readFile("../Frequency/Frequency_2.txt", diFreq, 50);
     readFile("../Frequency/Frequency_3.txt", triFreq, 50);
+    if (heuristic == 3)
+    {
+        readFile("../Frequency/Frequency.txt", freqChart, 10000);
+    }
+    else
+    {
+        readFile("../Frequency/Frequency.txt", freqChart, 1000);
+    }
 }
 
 void GACipher::loadCodedMessage(std::string filename)
@@ -442,17 +449,22 @@ double GACipher::heuristic_2 (std::string cipher) {
 
 double GACipher::heuristic_3 (std::string cipher) {
     std::string translated = translate(cipher);
+    double score = 0;
 
     for (int i = 2; i < translated.size(); i++)
     {
-        auto thing = messFreqTri.find(translated.substr(i-2,3))
-        if ( thing != messFreqTri.end() )
+        auto thing = triFreq.find(translated.substr(i-2,3));
+        if ( thing != triFreq.end() )
         {
-            score += log10(thing->second)
+            score += log10(thing->second);
+        }
+        else
+        {
+            score += log10(.01/8923);
         }
     }
 
-    return score;
+    return -1*score;
 }
 
 double GACipher::fitnessSet(std::string cipher) {
@@ -556,6 +568,7 @@ void GACipher::run(std::string filename) {
     //elem.second = fitnessSet(elem.first);
     //population.push_back(elem);
     sort(population.begin(), population.end(), [](const std::pair<std::string, double> a, const std::pair<std::string, double> b) { return a.second < b.second; });
+    bestCipher = population.back();
     //for_each(population.begin(), population.end(), [this](auto it) { std::cout << this->translate(it.first) << " " << it.second << std::endl; });
     //exit(EXIT_SUCCESS);
     std::cout << "MESSAGE LOADED" << std::endl;
