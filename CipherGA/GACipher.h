@@ -10,6 +10,7 @@
 #include <chrono>
 #include <algorithm>
 #include <set>
+#include <math.h>
 
 // construct uniFreq then access di and tri based on unireq
 
@@ -29,6 +30,7 @@ class GACipher
         double uniWeight;
         double diWeight;
         double triWeight;
+        int countTri;
 
         std::map<std::string, double> freqChart;
         std::map<std::string, double> uniFreq;
@@ -106,6 +108,7 @@ GACipher::GACipher(double _copyRate, double _mutRate, double _time, int _popSize
     diWeight = 1;
     triWeight = 1;
     bestCipher = std::make_pair("",1000);
+    countTri = 0;
 }
 
 // "Complicated" Getter and/or Setter methods
@@ -224,7 +227,7 @@ bool GACipher::mutate(std::pair<std::string, double>& ttm)
 }
 
 
-// FINTNESS 
+// FINTNESS
 double GACipher::heuristic_1 (std::string cipher) {
     std::string tempMessage = codedMessage;
     std::map<std::string, double> messFreqUni;
@@ -375,7 +378,7 @@ double GACipher::heuristic_2 (std::string cipher) {
 
         // find the frequency by dividing the number of occurances by the length of the the string
         double frequency = (1.0 * occurances) / translated.size();
-        
+
         // uniError is expected frequency - observed frequency
         uniError += fabs(uniFreq[cipher.substr(i,1)] - frequency);
     }
@@ -408,7 +411,7 @@ double GACipher::heuristic_2 (std::string cipher) {
         double triFit = 0;
         for (int i = 2; i < translated.size();i++) {
             triFit += triFreq[translated.substr(i - 2, 3)];
-        } 
+        }
 
         return  ((uniError * uniWeight) + (diWeight * diError)) - (triWeight * triFit);
     }
@@ -418,63 +421,17 @@ double GACipher::heuristic_2 (std::string cipher) {
 
 double GACipher::heuristic_3 (std::string cipher) {
     std::string translated = translate(cipher);
-    
-    // calculate uniError (|percievedFreq - observedFreq|)
-    int occurances = 0;
-    double frequency = 0;
-    double uniError = 0;
-    for (int i = 0; i < 26; i++) {
 
-        // count the number of occurances a character in the translated text
-        occurances = count(translated.begin(), translated.end(), cipher[i]);
-
-        // find the frequency by dividing the number of occurances by the length of the the string
-        double frequency = (1.0 * occurances) / translated.size();
-        
-        // uniError is expected frequency - observed frequency
-        uniError += fabs(uniFreq[cipher.substr(i,1)] - frequency);
+    for (int i = 2; i < translated.size(); i++)
+    {
+        auto thing = messFreqTri.find(translated.substr(i-2,3))
+        if ( thing != messFreqTri.end() )
+        {
+            score += log10(thing->second)
+        }
     }
 
-    if (uniError < 0.8) {
-
-        // calculate diError
-        double diError = 0;
-        std::set<std::string> alreadyCounted;
-        for (int i = 1; i < translated.size(); i++) {
-            std::string str = translated.substr(i - 1, 2);
-
-            if (alreadyCounted.find(str) == alreadyCounted.end()) {
-                // count the number of occurances a character in the translated text
-                occurances = 0;
-
-                for (int k = i; k < translated.size(); k++)
-                    if (translated.substr(k - 1, 2) == str)
-                        occurances++;
-
-                // find the frequency by dividing the number of occurances by the length of the the string
-                double frequency = (1.0 * occurances) / translated.size();
-                diError += fabs(diFreq[str] - frequency);
-
-                // add to set
-                alreadyCounted.insert(str);
-            }
-        }
-
-        // calculate diFit
-        double diFit = 0;
-        for (int i = 1; i < translated.size(); i++) {
-            diFit += diFreq[translated.substr(i - 1, 2)];
-        }
-       
-        // calculate triFit
-        double triFit = 0;
-        for (int i = 2; i < translated.size();i++) {
-            triFit += triFreq[translated.substr(i - 2, 3)];
-        }
-
-        return uniError + diError - ((diFit * diWeight) + (triFit * triWeight));
-    }
-    return 10 - uniError;
+    return score;
 }
 
 double GACipher::fitnessSet(std::string cipher) {
@@ -612,7 +569,7 @@ void GACipher::run(std::string filename) {
             std::cout << "Gen: " << gen << std::endl;
             std::cout << "New Best: " << population[0].first << std::endl << "Fitness: " << population[0].second << std::endl;
             std::cout << "Unique Values in Population: " << unique.size() << std::endl;
-           
+
             bestCipher = population[0];
             decode(bestCipher.first);
             std::cout << std::endl;
@@ -697,7 +654,7 @@ void GACipher::run(std::string filename) {
                 interPop.erase(interPop.begin() + partnerIndex);
                 interPop.erase(interPop.begin());
 
-          
+
                 // create pairs so crossA/crossB can be added to population
                 std::pair<std::string,double> elemA (crossA, 0);
                 std::pair<std::string,double> elemB (crossB, 0);
@@ -707,7 +664,7 @@ void GACipher::run(std::string filename) {
 
                 elemA.second = fitnessSet(elemA.first);
                 elemB.second = fitnessSet(elemB.first);
-           
+
                 // add to new pop
                 nextPop.push_back(elemA);
                 nextPop.push_back(elemB);
