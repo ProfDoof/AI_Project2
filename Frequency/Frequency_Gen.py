@@ -48,21 +48,21 @@ def main():
     #file.close()
 
     #file = open("Frequency_.txt", "w")
-    i = 0
+    #i = 0
     for k, v in sorted(freq_2.items(), reverse = True, key = lambda x : x[1]):
         file.write(k + " " + str(v / sum(freq_2.values())) + "\n")
-        if i == 56:
-            break
-        i += 1
+        #if i == 56:
+            #break
+        #i += 1
     #file.close()
 
-    i = 0
+    #i = 0
     #file = open("Frequency_3.txt", "w")
     for k, v in sorted(freq_3.items(), reverse = True, key = lambda x : x[1]):
         file.write(k + " " + str(v / sum(freq_3.values())) + "\n")
-        if i == 114:
-            break
-        i += 1
+        #if i == 114:
+            #break
+        #i += 1
     #file.close()
 
     file.close()

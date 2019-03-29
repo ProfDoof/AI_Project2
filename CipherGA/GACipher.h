@@ -205,6 +205,27 @@ void GACipher::prunePop(std::vector<std::pair<std::string,double>> &pop) {
     }
 }
 
+bool GACipher::biasMutate(std::pair<std::string, double>& ttm) {
+    bool mutated = false;
+    for (int i = 0; i < 26; i++) {
+        if (dist(engine) <= mutRate) {
+            int randIndex = dist(engine) * 24 + 2;
+            int otherIndex = randIndex - (dist(engine) * 2);
+
+            auto it = find(ttm.first.begin(), ttm.first.end(), mostFreqChars[randIndex]);
+            auto itOne = find(ttm.first.begin(), ttm.first.end(), mostFreqChars[otherIndex]);
+
+            char temp = *it;
+            ttm.first[it - ttm.first.begin()] = *itOne;
+            ttm.first[itOne - ttm.first.begin()] = temp;
+            break;
+
+            mutated = true;
+        }
+    }
+    return mutated;
+}
+
 
 bool GACipher::mutate(std::pair<std::string, double>& ttm)
 {
@@ -484,6 +505,8 @@ double GACipher::fitnessSet(std::string cipher) {
         return heuristic_2(cipher);
     if (heuristic == 3)
         return heuristic_3(cipher);
+
+    return 0;
 }
 
 
