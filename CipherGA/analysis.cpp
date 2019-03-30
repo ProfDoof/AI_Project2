@@ -24,7 +24,7 @@ int main()
     double _time = .01 * 60000;
     double elitism[] = {0,.1};
     std::string filename = "../Test_Files/Cipher/test_1.txt";
-    std::string actualKey = "NVPJUEGRAQZCLKBWYDOHFISXTM";
+    std::string actualKey = "EPVBLKXRTUCOJIZFASHMDNQWGY";
     double uniWeight = 1;
     double diWeight = 1.5;
     double triWeight = 3;

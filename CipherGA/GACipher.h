@@ -12,6 +12,11 @@
 #include <set>
 #include <math.h>
 
+// Random Engine
+thread_local std::random_device rd{};
+thread_local std::mt19937 engine{rd()};
+thread_local std::uniform_real_distribution<double> dist{0.0, 1.0};
+
 // construct uniFreq then access di and tri based on unireq
 
 class GACipher
@@ -45,8 +50,6 @@ class GACipher
         std::pair<std::string, double> bestCipher;
 
         // Random Engine
-        std::mt19937 engine{static_cast<long unsigned int>(time(0))};
-        std::uniform_real_distribution<double> dist{0.0, 1.0};
 
         // Alphabet
         std::string alphabetString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -507,7 +510,8 @@ std::string GACipher::translate(std::string key) {
 void GACipher::printFitness() {
     for (int i = 0; i < population.size(); i++)
     {
-        std::cout << population[i].second << std::endl;
+        std::cout << "Version "<< version << "Population" << "\n----------------------" << population[i].first << " " << population[i].second << std::endl;
+
     }
 }
 
@@ -572,7 +576,10 @@ void GACipher::run(std::string filename) {
     std::cout << "START RUN" << std::endl;
     loadCodedMessage(filename);
     loadFreq();
+    std::cout << "FREQUENCY AND CODED MESSAGE LOADED" << std::endl;
     randPopulation();
+    //printFitness();
+    //return;
     std::pair<std::string,double> elem;
     //elem.first = "EPVBLKXRTUCOJIZFASHMDNQWGY"; // test_1
     //elem.first = "NRJTAPYXLHGCWUODIKBVEQMFSZ"; // test_4
@@ -600,7 +607,7 @@ void GACipher::run(std::string filename) {
         std::vector<std::pair<std::string,double>> nextPop;
         std::vector<std::pair<std::string,double>> normPop;
 
-        if (prune && gen % 100 == 0 & gen > 20000) {
+        if (prune && gen % 100 == 0 && gen > 20000) {
             prunePop(population);
         }
 
@@ -743,5 +750,6 @@ void GACipher::run(std::string filename) {
         }
     }
     fout << count;
+    // std::cout << "Version " << version << " is finished running." << std::endl;
     // std::cout << count << std::endl << std::endl;
 }
