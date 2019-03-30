@@ -18,6 +18,7 @@ class GACipher
 {
     private:
         // Adjustable Knobs for the Genetic Algorithm
+        int version;
         int popSize;
         int crossovers;
         int prune;
@@ -56,6 +57,7 @@ class GACipher
 
     public:
         // CONSTRUCTORS
+        GACipher();
         GACipher(double _copyRate, double _mutRate, double _time, int _popSize, std::string _actualKey, int _crossovers, int _prune, double _elitism, int _heuristic);
 
         void setFreqWeights(double uW, double dW, double tW);
@@ -70,6 +72,7 @@ class GACipher
         void loadFreq();
         void randPopulation();
         void decode(std::string cipher);
+        void loadVersion(int version);
 
         // run methods
         double fitnessSet(std::string cipher);
@@ -91,6 +94,16 @@ class GACipher
 };
 
 // CONSTRUCTOR
+void GACipher::loadVersion(int v)
+{
+    version = v;
+}
+
+GACipher::GACipher()
+{
+
+}
+
 GACipher::GACipher(double _copyRate, double _mutRate, double _time, int _popSize, std::string _actualKey, int _crossovers, int _prune, double _elitism, int _heuristic) {
 
     copyRate = _copyRate;
@@ -602,13 +615,13 @@ void GACipher::run(std::string filename) {
         {
             std::set<std::string> unique;
             for_each(population.begin(), population.end(), [&unique](auto it) { unique.insert(it.first); });
-            std::cout << "Gen: " << gen << std::endl;
-            std::cout << "New Best: " << population[0].first << std::endl << "Fitness: " << population[0].second << std::endl;
-            std::cout << "Unique Values in Population: " << unique.size() << std::endl;
+            // std::cout << "Gen: " << gen << std::endl;
+            // std::cout << "New Best: " << population[0].first << std::endl << "Fitness: " << population[0].second << std::endl;
+            // std::cout << "Unique Values in Population: " << unique.size() << std::endl;
 
             bestCipher = population[0];
-            decode(bestCipher.first);
-            std::cout << std::endl;
+            // decode(bestCipher.first);
+            // std::cout << std::endl;
         }
 
         // ELITISM
@@ -714,10 +727,13 @@ void GACipher::run(std::string filename) {
         gen++;
     }
 
-    std::cout << "\nThe best key found based on fitness was " << bestCipher.first << std::endl;
-    std::cout << "The actual key should be                " << actualKey;
-    std::cout << "\nThe fitness for the actual key was      " << fitnessSet(actualKey);
-    std::cout << "\nThe number of same letters between the best and the actual key is ";
+    std::ofstream fout;
+    fout.open("analysis_v"+std::to_string(version));
+    fout << popSize << ", " << crossovers << ", " << prune << ", " << elitism << ", " << heuristic << ", " << copyRate << ", " << mutRate << "," << bestCipher.first << ", " << actualKey << ", " <<  fitnessSet(actualKey) << ", ";
+    // std::cout << "\nThe best key found based on fitness was " << bestCipher.first << std::endl;
+    // std::cout << "The actual key should be                " << actualKey;
+    // std::cout << "\nThe fitness for the actual key was      " << fitnessSet(actualKey);
+    // std::cout << "\nThe number of same letters between the best and the actual key is ";
     int count = 0;
     for (int i = 0; i < 26; i++)
     {
@@ -726,5 +742,6 @@ void GACipher::run(std::string filename) {
             count++;
         }
     }
-    std::cout << count << std::endl << std::endl;
+    fout << count;
+    // std::cout << count << std::endl << std::endl;
 }
