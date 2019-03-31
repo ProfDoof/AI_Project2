@@ -602,7 +602,13 @@ void GACipher::run(std::string filename) {
     // Run this as long as is defined in the GA
     // constructor
     int gen = 1;
+    int timeCounter = 1;
     while (compare.count() < timeToRun) {
+        if (compare.count() > 1000*timeCounter)
+        {
+            std::cout << "1 second has passed for Version " << version << " of this process." << std::endl;
+            timeCounter++;
+        }
         std::vector<std::pair<std::string,double>> interPop;
         std::vector<std::pair<std::string,double>> nextPop;
         std::vector<std::pair<std::string,double>> normPop;

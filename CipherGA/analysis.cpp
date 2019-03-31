@@ -21,7 +21,7 @@ int main()
     int heuristic[] = {1,2,3};
     double mutationRate[] = {0,.1,.25};
     double copyRate[] = {0,.1};
-    double _time = .01 * 60000;
+    double _time = 10 * 60000;
     double elitism[] = {0,.1};
     std::string filename = "../Test_Files/Cipher/test_1.txt";
     std::string actualKey = "EPVBLKXRTUCOJIZFASHMDNQWGY";
@@ -59,38 +59,8 @@ int main()
 
     for (int i = 0; i < 72; i++)
     {
-        pid_t pid = fork();
-        if (pid > 0)
-        {
-            analysisSet[i].loadVersion(i);
-            analysisSet[i].run(filename);
-            i = 72;
-        }
-        else if (pid == 0)
-        {
-            cout << "fork succeeded for " << i << endl;
-        }
-        else
-        {
-            cout << "fork failed for " << i << endl;
-        }
+        analysisSet[i].loadVersion(i);
+        analysisSet[i].run(filename);
     }
 
-    while (true)
-    {
-        int status;
-        pid_t done = wait(&status);
-        if (done == -1)
-        {
-            if (errno == ECHILD) break; // no more child processes
-        }
-        else
-        {
-            if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-            {
-                cerr << "pid " << done << " failed" << endl;
-                exit(1);
-            }
-        }
-    }
 }
